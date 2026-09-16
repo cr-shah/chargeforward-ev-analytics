@@ -6,6 +6,12 @@ from fastapi import FastAPI, HTTPException
 
 app = FastAPI(title="ChargeForward API", version="0.1.0")
 OUTPUT = Path(os.getenv("CHARGEFORWARD_OUTPUT", "data/processed"))
+REQUIRED_OUTPUTS = (
+    "state_forecast.csv",
+    "county_forecasts.csv",
+    "county_segments.csv",
+    "evaluation.json",
+)
 
 
 def _read(name: str) -> pd.DataFrame:
@@ -17,7 +23,8 @@ def _read(name: str) -> pd.DataFrame:
 
 @app.get("/health")
 def health():
-    return {"ready": (OUTPUT / "state_forecast.csv").exists()}
+    missing = [name for name in REQUIRED_OUTPUTS if not (OUTPUT / name).is_file()]
+    return {"ready": not missing, "missing_outputs": missing}
 
 
 @app.get("/counties")
