@@ -1,0 +1,116 @@
+group,value,records,positive_observed_range,coverage_pct
+model_year,1999,3,3,100.0
+model_year,2000,8,8,100.0
+model_year,2002,1,1,100.0
+model_year,2003,1,1,100.0
+model_year,2008,17,16,94.12
+model_year,2010,18,18,100.0
+model_year,2011,528,528,100.0
+model_year,2012,1285,1285,100.0
+model_year,2013,3844,3844,100.0
+model_year,2014,3141,3141,100.0
+model_year,2015,4368,4367,99.98
+model_year,2016,5020,5020,100.0
+model_year,2017,8410,8410,100.0
+model_year,2018,13942,13941,99.99
+model_year,2019,10795,10790,99.95
+model_year,2020,12156,12085,99.42
+model_year,2021,20791,5092,24.49
+model_year,2022,30160,5008,16.6
+model_year,2023,61425,7374,12.0
+model_year,2024,49273,10680,21.68
+model_year,2025,36938,7477,20.24
+model_year,2026,36237,4043,11.16
+model_year,2027,555,10,1.8
+ev_type,Battery Electric Vehicle (BEV),241125,45380,18.82
+ev_type,Plug-in Hybrid Electric Vehicle (PHEV),57791,57762,99.95
+make,ACURA,358,0,0.0
+make,ALFA ROMEO,93,93,100.0
+make,ASTON MARTIN,1,1,100.0
+make,AUDI,6127,2882,47.04
+make,AZURE DYNAMICS,3,3,100.0
+make,BENTLEY,8,8,100.0
+make,BMW,12327,7411,60.12
+make,BRIGHTDROP,61,0,0.0
+make,CADILLAC,2880,87,3.02
+make,CHEVROLET,20195,9866,48.85
+make,CHRYSLER,3614,3614,100.0
+make,DODGE,496,382,77.02
+make,FERRARI,75,73,97.33
+make,FIAT,857,733,85.53
+make,FISKER,120,9,7.5
+make,FORD,16075,4068,25.31
+make,GENESIS,555,0,0.0
+make,GMC,621,0,0.0
+make,HONDA,3261,873,26.77
+make,HYUNDAI,12334,1727,14.0
+make,JAGUAR,136,90,66.18
+make,JEEP,6139,5951,96.94
+make,KARMA,2,2,100.0
+make,KIA,14756,5836,39.55
+make,LAMBORGHINI,39,39,100.0
+make,LAND ROVER,252,252,100.0
+make,LEXUS,2183,1294,59.28
+make,LINCOLN,493,493,100.0
+make,LUCID,915,0,0.0
+make,MASERATI,1,0,0.0
+make,MAZDA,1689,1666,98.64
+make,MCLAREN,15,4,26.67
+make,MERCEDES-BENZ,3484,1359,39.01
+make,MINI,1259,351,27.88
+make,MITSUBISHI,1300,1300,100.0
+make,MULLEN AUTOMOTIVE INC.,20,0,0.0
+make,NISSAN,16022,9469,59.1
+make,POLESTAR,1694,203,11.98
+make,PORSCHE,2151,1088,50.58
+make,RAM,28,0,0.0
+make,RIVIAN,9800,0,0.0
+make,ROLLS-ROYCE,4,0,0.0
+make,SMART,214,213,99.53
+make,SUBARU,3635,366,10.07
+make,TESLA,122573,24156,19.71
+make,TH!NK,6,6,100.0
+make,TOYOTA,13962,10825,77.53
+make,VINFAST,6,0,0.0
+make,VOLKSWAGEN,7904,1053,13.32
+make,VOLVO,8171,5294,64.79
+make,WHEEGO ELECTRIC CARS,2,2,100.0
+county,Adams,143,56,39.16
+county,Asotin,135,63,46.67
+county,Benton,4505,1875,41.62
+county,Chelan,2022,728,36.0
+county,Clallam,1892,869,45.93
+county,Clark,18782,7012,37.33
+county,Columbia,25,8,32.0
+county,Cowlitz,1678,632,37.66
+county,Douglas,704,252,35.8
+county,Ferry,65,33,50.77
+county,Franklin,1358,564,41.53
+county,Garfield,8,4,50.0
+county,Grant,1265,503,39.76
+county,Grays Harbor,1187,523,44.06
+county,Island,3289,1367,41.56
+county,Jefferson,1655,765,46.22
+county,King,144257,46155,31.99
+county,Kitsap,10351,4065,39.27
+county,Kittitas,1220,414,33.93
+county,Klickitat,572,231,40.38
+county,Lewis,1423,664,46.66
+county,Lincoln,99,52,52.53
+county,Mason,1602,624,38.95
+county,Okanogan,491,204,41.55
+county,Pacific,398,180,45.23
+county,Pend Oreille,132,55,41.67
+county,Pierce,25042,9003,35.95
+county,San Juan,1381,754,54.6
+county,Skagit,3570,1413,39.58
+county,Skamania,320,126,39.38
+county,Snohomish,37818,11178,29.56
+county,Spokane,8741,3437,39.32
+county,Stevens,430,190,44.19
+county,Thurston,10985,4246,38.65
+county,Wahkiakum,105,60,57.14
+county,Walla Walla,874,416,47.6
+county,Whatcom,7560,3208,42.43
+county,Whitman,632,271,42.88
+county,Yakima,2200,942,42.82

@@ -44,4 +44,4 @@ def evaluation():
         raise HTTPException(503, "Run the data pipeline first")
     import json
     report = json.loads(path.read_text())
-    return {"state_backtest": {k: v for k, v in report["state_backtest"].items() if k != "holdout_predictions"}, "panel_model": report["panel_model"], "clustering": report["clustering"]}
+    return {"state_backtest": {k: v for k, v in report["state_backtest"].items() if k != "holdout_predictions"}, "panel_model": report["panel_model"], "clustering": report["clustering"], "county_error_summary": report["county_error_summary"], "uncertainty": report["uncertainty"], "interval_coverage": report["interval_coverage"]}

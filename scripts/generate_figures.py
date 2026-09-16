@@ -101,4 +101,85 @@ ax.set_yticks(np.arange(len(heat.index)), heat.index)
 ax.set(title="Monthly electric transaction activity by year")
 fig.colorbar(im, ax=ax, label="Transactions", shrink=.75)
 save("08-calendar-heatmap.png")
-print(f"Created 8 figures in {OUT}")
+
+
+# Research figures. Every number below is read from generated outputs.
+county_errors = pd.read_csv(DATA / "county_error_analysis.csv")
+ordered = county_errors.sort_values("ml_improvement_vs_baseline_pct")
+edge = pd.concat([ordered.head(10), ordered.tail(10)]).drop_duplicates("County").sort_values("ml_improvement_vs_baseline_pct")
+fig, ax = plt.subplots(figsize=(10, 7))
+values = edge.ml_improvement_vs_baseline_pct
+ax.barh(edge.County, values, color=[TEAL if value > 0 else ORANGE for value in values])
+ax.axvline(0, color=DARK, lw=1)
+ax.set(xlabel="Random Forest RMSE improvement over prior-year baseline (%)", title="Where did ML help? Top and bottom 10 counties")
+ax.grid(True, axis="x")
+save("09-county-improvement.png")
+
+fig, ax = plt.subplots(figsize=(9, 4.7))
+for label, group in county_errors.groupby(county_errors.ml_improvement_vs_baseline_pct.gt(0)):
+    ax.scatter(group.mean_monthly_transactions, group.ml_improvement_vs_baseline_pct, color=TEAL if label else ORANGE, s=55, alpha=.8, label="ML lower RMSE" if label else "Baseline lower RMSE")
+king = county_errors[county_errors.County == "King"].iloc[0]
+ax.annotate("King", (king.mean_monthly_transactions, king.ml_improvement_vs_baseline_pct), xytext=(-35, 8), textcoords="offset points")
+ax.set_xscale("log"); ax.axhline(0, color=DARK, lw=1)
+ax.set(xlabel="Mean monthly electric transactions (log scale)", ylabel="Random Forest improvement over baseline (%)", title="Does ML gain depend on county size?")
+ax.legend(frameon=False); ax.grid(True, alpha=.17)
+save("10-error-vs-size.png")
+
+ablation = pd.read_csv(DATA / "ablation_results.csv")
+fig, ax = plt.subplots(figsize=(9, 4.3))
+ax.barh(ablation.feature_set, ablation.improvement_vs_calendar_rmse, color=[GRAY] + [TEAL]*5)
+ax.invert_yaxis(); ax.set(xlabel="Validation RMSE reduction versus calendar-only (transactions)", title="What information improves next-month prediction?")
+ax.grid(True, axis="x")
+save("11-feature-ablation.png")
+
+intervals = pd.read_csv(DATA / "prediction_intervals.csv", parse_dates=["Date"])
+county_name = report["uncertainty"]["representative_county"]
+example = intervals[intervals.County == county_name]
+fig, ax = plt.subplots(figsize=(10, 4.6))
+ax.fill_between(example.Date, example.lower_95, example.upper_95, color=BLUE, alpha=.14, label="95% interval")
+ax.fill_between(example.Date, example.lower_80, example.upper_80, color=BLUE, alpha=.3, label="80% interval")
+ax.plot(example.Date, example.prediction, color=BLUE, marker="o", label="Prediction")
+ax.plot(example.Date, example.actual, color=DARK, marker="s", label="Observed")
+ax.set(title=f"Prediction uncertainty | {county_name} (median-volume county)", xlabel="Transaction month", ylabel="Electric transactions per month")
+ax.legend(frameon=False, ncol=4); ax.grid(True, axis="y")
+save("12-prediction-intervals.png")
+
+temporal = pd.read_csv(DATA / "temporal_robustness.csv", parse_dates=["evaluation_start"])
+fig, ax = plt.subplots(figsize=(10, 4.5))
+for name, color in (("lag_12_baseline", GRAY), ("poisson_glm", TEAL), ("random_forest", BLUE)):
+    subset = temporal[temporal.model == name]
+    ax.plot(subset.evaluation_start.dt.year, subset.rmse, marker="o", lw=2, color=color, label={"lag_12_baseline":"Prior-year baseline", "poisson_glm":"Poisson GLM", "random_forest":"Random Forest"}[name])
+ax.set(title="Model ranking changes across annual historical windows", xlabel="Evaluation window start year (August)", ylabel="County-month RMSE (transactions)")
+ax.legend(frameon=False); ax.grid(True, axis="y")
+save("13-temporal-robustness.png")
+
+missingness = pd.read_csv(DATA / "range_missingness_analysis.csv")
+years = missingness[(missingness.group == "model_year") & (missingness.records >= 1000)].copy()
+years["value"] = years.value.astype(int)
+years = years[years.value >= 2015].sort_values("value")
+fig, ax = plt.subplots(figsize=(10, 4.4))
+ax.bar(years.value.astype(str), years.coverage_pct, color=[TEAL if y < 2021 else ORANGE for y in years.value])
+ax.set(title="Positive range coverage drops sharply for newer model years", xlabel="Vehicle model year", ylabel="Records with positive observed range (%)", ylim=(0,105))
+ax.grid(True, axis="y")
+save("14-range-by-model-year.png")
+
+kinds = missingness[missingness.group == "ev_type"].copy()
+kinds["short"] = kinds.value.str.extract(r"\((BEV|PHEV)\)")
+fig, ax = plt.subplots(figsize=(7, 3.2))
+ax.bar(kinds.short, kinds.coverage_pct, color=[BLUE, TEAL])
+for i, row in enumerate(kinds.itertuples()): ax.text(i, row.coverage_pct + 2, f"{row.coverage_pct:.1f}% | n={row.records:,}", ha="center", fontsize=10)
+ax.set(title="Range availability differs by EV type", xlabel="EV type", ylabel="Positive range coverage (%)", ylim=(0,115))
+ax.grid(True, axis="y")
+save("15-range-by-type.png")
+
+clusters = pd.read_csv(DATA / "clustering_sensitivity.csv")
+fig, ax = plt.subplots(figsize=(8, 4))
+ax.plot(clusters.k, clusters.silhouette, color=BLUE, marker="o", lw=2)
+chosen = clusters[clusters.k == 3].iloc[0]
+ax.scatter([3], [chosen.silhouette], s=120, color=ORANGE, zorder=3)
+ax.annotate("Current k=3", (3, chosen.silhouette), xytext=(10,10), textcoords="offset points")
+ax.set(title="Is the three-segment choice strongest by silhouette?", xlabel="Number of clusters (k)", ylabel="Silhouette score", xticks=clusters.k)
+ax.grid(True, axis="y")
+save("16-clustering-sensitivity.png")
+
+print(f"Created {len(list(OUT.glob('*.png')))} figures in {OUT}")

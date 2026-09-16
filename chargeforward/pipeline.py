@@ -13,6 +13,9 @@ from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import StandardScaler
 from .forecasting import forecast_one
 from .panel import evaluate_panel
+from .ablation import run_ablation
+from .uncertainty import evaluate_uncertainty
+from .diagnostics import county_error_analysis, error_drivers, temporal_robustness, range_missingness, range_thresholds, clustering_sensitivity
 
 WA_COUNTIES = frozenset("Adams|Asotin|Benton|Chelan|Clallam|Clark|Columbia|Cowlitz|Douglas|Ferry|Franklin|Garfield|Grant|Grays Harbor|Island|Jefferson|King|Kitsap|Kittitas|Klickitat|Lewis|Lincoln|Mason|Okanogan|Pacific|Pend Oreille|Pierce|San Juan|Skagit|Skamania|Snohomish|Spokane|Stevens|Thurston|Wahkiakum|Walla Walla|Whatcom|Whitman|Yakima".split("|"))
 
@@ -91,6 +94,14 @@ def build(population_csv: Path, registrations_csv: Path, output: Path, threshold
     _, flow, reg_audit = load_flow(registrations_csv)
     counties = segment_counties(vehicles, stock, flow, threshold)
     panel_predictions, panel_county, panel_report, panel_models = evaluate_panel(flow)
+    county_errors, macro, county_summary = county_error_analysis(panel_predictions, panel_report["selected_statistical"], panel_report["selected_ml"])
+    error_rows, error_summary = error_drivers(panel_predictions, counties, panel_report["selected_ml"])
+    ablation = run_ablation(flow)
+    intervals, coverage, uncertainty_report = evaluate_uncertainty(flow)
+    temporal = temporal_robustness(flow)
+    missingness = range_missingness(vehicles)
+    thresholds = range_thresholds(vehicles)
+    cluster_sensitivity = clustering_sensitivity(counties)
     state = flow.groupby("Date", as_index=False)["EV_Transactions"].sum()
     actual, future, evaluation, fitted = forecast_one(state)
     county_scores = []
@@ -107,6 +118,17 @@ def build(population_csv: Path, registrations_csv: Path, output: Path, threshold
     counties.to_csv(output / "county_segments.csv", index=False)
     panel_predictions.to_csv(output / "panel_test_predictions.csv", index=False)
     panel_county.to_csv(output / "panel_county_metrics.csv", index=False)
+    county_errors.to_csv(output / "county_error_analysis.csv", index=False)
+    macro.to_csv(output / "macro_metrics.csv", index=False)
+    error_rows.to_csv(output / "error_diagnostics.csv", index=False)
+    ablation.to_csv(output / "ablation_results.csv", index=False)
+    intervals.to_csv(output / "prediction_intervals.csv", index=False)
+    coverage.to_csv(output / "interval_coverage.csv", index=False)
+    temporal.to_csv(output / "temporal_robustness.csv", index=False)
+    missingness.to_csv(output / "range_missingness_analysis.csv", index=False)
+    thresholds.to_csv(output / "range_threshold_sensitivity.csv", index=False)
+    cluster_sensitivity.to_csv(output / "clustering_sensitivity.csv", index=False)
+    pd.DataFrame([{"period": period, **row} for period, rows in (("validation",panel_report["validation_scores"]),("historical_final",panel_report["test_scores"])) for row in rows]).to_csv(output / "statistical_model_results.csv", index=False)
     flow.to_csv(output / "monthly_transactions.csv", index=False)
     actual.to_csv(output / "state_history.csv", index=False)
     pd.DataFrame(evaluation["holdout_predictions"]).to_csv(output / "state_holdout_predictions.csv", index=False)
@@ -114,7 +136,7 @@ def build(population_csv: Path, registrations_csv: Path, output: Path, threshold
     pd.concat(county_forecasts).to_csv(output / "county_forecasts.csv", index=False)
     joblib.dump(panel_models, output / "panel_models.joblib")
     joblib.dump({"models": fitted, "origin": str(actual.Date.min().date()), "last_month": str(actual.Date.max().date()), "selected": evaluation["winner"]}, output / "state_models.joblib")
-    report = {"data": {**pop_audit, **reg_audit}, "clustering": {"silhouette": counties.attrs.get("silhouette"), "threshold_miles": threshold}, "panel_model": panel_report, "state_backtest": evaluation, "county_backtests": county_scores, "notes": ["Registration counts are transactions, not new vehicles or charger installations.", "Range threshold uses only records with observed positive range; imputed range is excluded from this risk percentage.", "No charger inventory is present, so a supply gap is not estimated."]}
+    report = {"data": {**pop_audit, **reg_audit}, "clustering": {"silhouette": counties.attrs.get("silhouette"), "threshold_miles": threshold}, "panel_model": panel_report, "county_error_summary": county_summary, "error_driver_summary": error_summary, "uncertainty": uncertainty_report, "interval_coverage": coverage.to_dict("records"), "state_backtest": evaluation, "county_backtests": county_scores, "notes": ["Registration counts are transactions, not new vehicles or charger installations.", "Range threshold uses only records with observed positive range; imputed range is excluded from this risk percentage.", "No charger inventory is present, so a supply gap is not estimated."]}
     (output / "evaluation.json").write_text(json.dumps(report, indent=2))
     return report
 

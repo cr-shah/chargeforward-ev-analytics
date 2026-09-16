@@ -1,0 +1,7 @@
+feature_set,features,mae,rmse,r2,wape_pct,improvement_vs_calendar_rmse
+A: calendar,month_sin|month_cos|month_index,216.5,449.1,-0.2112,90.32,0.0
+B: + prior year,month_sin|month_cos|month_index|lag_12,33.26,98.3,0.942,13.87,350.8
+C: + prior month,month_sin|month_cos|month_index|lag_12|lag_1,32.95,86.0,0.9556,13.75,363.1
+D: + trailing averages,month_sin|month_cos|month_index|lag_12|lag_1|lag_3_mean|lag_12_mean,26.54,75.24,0.966,11.07,373.86
+E: + county scale,month_sin|month_cos|month_index|lag_12|lag_1|lag_3_mean|lag_12_mean|county_scale,26.0,75.22,0.966,10.85,373.88
+F: full history,lag_1|lag_2|lag_3_mean|lag_12|lag_13|lag_12_mean|yoy_gap|recent_vs_year|month_sin|month_cos|county_scale|month_index,26.52,73.54,0.9675,11.06,375.56

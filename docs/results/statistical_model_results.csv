@@ -1,0 +1,11 @@
+period,model,mae,rmse,r2,wape_pct
+validation,poisson_glm,19.2,42.73,0.989,8.01
+validation,random_forest,26.52,73.54,0.9675,11.06
+validation,gradient_boosting,28.74,87.82,0.9537,11.99
+validation,negative_binomial,30.97,89.45,0.9519,12.92
+validation,lag_12_baseline,71.57,157.1,0.8518,29.86
+historical_final,poisson_glm,31.2,92.95,0.9546,11.7
+historical_final,lag_12_baseline,44.2,103.59,0.9436,16.57
+historical_final,gradient_boosting,47.99,132.29,0.908,17.99
+historical_final,random_forest,45.28,132.57,0.9076,16.98
+historical_final,negative_binomial,49.2,136.94,0.9014,18.44

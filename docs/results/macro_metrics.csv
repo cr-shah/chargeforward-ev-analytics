@@ -1,0 +1,4 @@
+model,mean_county_mae,median_county_mae,mae_p25,mae_p75,mean_county_wape_pct,median_county_wape_pct,wape_p25,wape_p75
+lag_12_baseline,44.2,18.67,7.67,30.83,25.89,21.88,16.4,28.84
+poisson_glm,31.2,10.79,5.33,22.26,19.82,12.55,9.77,29.91
+random_forest,45.28,9.03,4.84,28.57,19.22,13.09,10.15,23.48
