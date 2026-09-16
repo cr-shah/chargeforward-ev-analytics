@@ -40,7 +40,10 @@ fig.add_scatter(x=future.Date, y=future.selected, mode="lines+markers", name=f"F
 st.plotly_chart(fig, width="stretch")
 st.caption("Model selected on three earlier rolling validation folds; table below is the final untouched year.")
 st.dataframe(pd.DataFrame(selected["holdout_scores"]), hide_index=True)
-st.warning("Statewide 12-month forecasts failed to beat the seasonal naive benchmark in the final test year. Treat them as exploratory; no charger supply is modeled.")
+if county == "Statewide":
+    st.warning("Statewide 12-month forecasts failed to beat the seasonal naive benchmark in the final test year. Treat them as exploratory; no charger supply is modeled.")
+else:
+    st.info("This county forecast is exploratory. Compare its final-year scores above; no charger supply is modeled.")
 st.subheader("County one-month-ahead model comparison")
 st.dataframe(pd.DataFrame(evaluation["panel_model"]["test_scores"]), hide_index=True)
 st.caption("Poisson, Negative Binomial, Random Forest, Gradient Boosting, and the prior-year baseline use the same county-month target. Historical final period: August 2025–July 2026.")
