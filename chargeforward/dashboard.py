@@ -3,6 +3,9 @@ import json
 from pathlib import Path
 import pandas as pd
 import plotly.express as px
+import folium
+from streamlit_folium import st_folium
+from chargeforward.pipeline import assign_segments
 import streamlit as st
 
 OUTPUT = Path("data/processed")
@@ -34,21 +37,28 @@ else:
 st.subheader("Registration transaction trend and exploratory forecast")
 fig = px.line(history, x="Date", y="EV_Transactions", labels={"EV_Transactions": "Monthly electric transactions"})
 fig.add_scatter(x=future.Date, y=future.selected, mode="lines+markers", name=f"Forecast: {selected['winner']}")
-st.plotly_chart(fig, use_container_width=True)
-st.dataframe(pd.DataFrame(selected["scores"]), hide_index=True)
-st.warning("All statewide models have negative held out R². Forecasts are exploratory and should not be used to claim a charger supply gap.")
+st.plotly_chart(fig, width="stretch")
+st.caption("Model selected on three earlier rolling validation folds; table below is the final untouched year.")
+st.dataframe(pd.DataFrame(selected["holdout_scores"]), hide_index=True)
+st.warning("Statewide 12-month forecasts failed to beat the seasonal naive benchmark in the final test year. Treat them as exploratory; no charger supply is modeled.")
 st.subheader("County segments and range sensitivity")
-st.caption("Segments use log EV fleet size, observed range share below the threshold, and recent transaction growth. Threshold changes the risk view; stored K-Means labels were fitted at 200 miles.")
+st.caption("Segments use log EV fleet size, observed range share below the threshold, and recent electric transaction volume. K-Means is refitted when the threshold changes.")
 threshold = st.slider("Range threshold (miles)", min_value=50, max_value=350, value=200, step=10)
 ranges = pd.read_csv(OUTPUT / "observed_ranges.csv")
 low = ranges[ranges.Electric_Range < threshold].groupby("County").Vehicles.sum()
 total = ranges.groupby("County").Vehicles.sum()
 view = segments.copy()
-view["Below_Threshold_Share"] = view.County.map((low / total).fillna(0))
+view["Observed_Low_Range_Share"] = view.County.map((low / total).fillna(0))
+view = assign_segments(view)
+view["Below_Threshold_Share"] = view.Observed_Low_Range_Share
 fig = px.scatter(view, x="Total_EVs", y="Below_Threshold_Share", color="Market_Segment", size="EV_Transactions_12M", hover_name="County", log_x=True, labels={"Below_Threshold_Share": "Share of measured ranges below threshold"})
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, width="stretch")
 map_data = view.dropna(subset=["Latitude", "Longitude"])
-st.map(map_data, latitude="Latitude", longitude="Longitude", size="Total_EVs", color=None)
-st.caption("Map markers are county median vehicle coordinates, not charger sites or county centroids.")
+m = folium.Map(location=[47.4, -120.7], zoom_start=7, tiles="OpenStreetMap")
+colors = {"Emerging": "green", "Growth": "orange", "Established": "blue"}
+for _, row in map_data.iterrows():
+    folium.CircleMarker(location=[row.Latitude, row.Longitude], radius=max(4, min(18, 2.2 * __import__("math").log1p(row.Total_EVs))), color=colors[row.Market_Segment], fill=True, fill_opacity=.7, tooltip=f"{row.County}: {row.Market_Segment}; {row.Total_EVs:,} EVs").add_to(m)
+st_folium(m, width=1000, height=470, returned_objects=[])
+st.caption("Markers use median vehicle coordinates per county, not charger sites or county centroids.")
 st.subheader("Data quality")
 st.json(evaluation["data"])

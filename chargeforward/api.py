@@ -34,4 +34,14 @@ def forecast(county: str):
         frame = frame[frame.County.str.casefold() == county.casefold()]
         if frame.empty:
             raise HTTPException(404, "County not found")
-    return {"county": county, "unit": "monthly electric registration transactions", "warning": "Exploratory forecast; historical holdout R2 is negative statewide. No charger supply is modeled.", "forecast": frame[["Date", "selected", "linear", "polynomial_2", "random_forest"]].to_dict("records")}
+    return {"county": county, "unit": "monthly electric registration transactions", "warning": "Exploratory 12-month forecast; final-year results are in /evaluation. No charger supply is modeled.", "forecast": frame.drop(columns=["County"], errors="ignore").to_dict("records")}
+
+
+@app.get("/evaluation")
+def evaluation():
+    path = OUTPUT / "evaluation.json"
+    if not path.exists():
+        raise HTTPException(503, "Run the data pipeline first")
+    import json
+    report = json.loads(path.read_text())
+    return {"state_backtest": {k: v for k, v in report["state_backtest"].items() if k != "holdout_predictions"}, "panel_model": report["panel_model"], "clustering": report["clustering"]}
