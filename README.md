@@ -248,8 +248,4 @@ The registration file's `Electric` fuel code is used as provided; it is not sepa
 | `scripts/verify_report.py` | Check README figures, key metrics, and published CSVs against a fresh run |
 | `data/processed/evaluation.json` | Local reproducible metrics after pipeline run |
 
-## Resume-safe project description
 
-> Built a reproducible Python pipeline joining **298,916 Washington EV records** with **576,457 electric registration transactions** across **39 counties**. Compared seasonal, Poisson, Negative Binomial, Random Forest, and Gradient Boosting models on **468 historical county-month evaluations**; Poisson achieved the lowest RMSE (**92.95**) while Random Forest improved on the seasonal baseline in **34 counties**. Added chronological feature ablation, prediction intervals, county error analysis, and temporal robustness checks; served results through FastAPI and Streamlit with Docker and CI.
-
-The original draft's **42% charger gap**, **R² 0.85**, and competition or policy claims are not reproduced or independently verified by these files. Adding a dated charger inventory and geography would be required to estimate infrastructure coverage.
