@@ -87,7 +87,7 @@ The count target is overdispersed in training: mean **103.69**, variance **59,43
 - Chronologically calibrated intervals covered **75.9%** for an 80% target and **90.0%** for a 95% target in the historical final year; uncertainty was understated.
 <!-- END GENERATED MODELING INSIGHTS -->
 
-These findings come from generated outputs. The [detailed research results](docs/RESEARCH_RESULTS.md) include full county and diagnostic tables.
+These findings come from generated outputs. The [detailed research results](docs/RESEARCH_RESULTS.md) include full county and diagnostic tables. The [project analytics summary](docs/PROJECT_ANALYTICS_SUMMARY.md) brings the technology stack, methods, results, visuals, and interpretation into one document.
 
 ### Where does ML add value?
 
@@ -247,5 +247,4 @@ The registration file's `Electric` fuel code is used as provided; it is not sepa
 | `scripts/publish_results.py` | Copy compact result CSVs into `docs/results/` for GitHub review |
 | `scripts/verify_report.py` | Check README figures, key metrics, and published CSVs against a fresh run |
 | `data/processed/evaluation.json` | Local reproducible metrics after pipeline run |
-
 
