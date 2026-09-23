@@ -3,9 +3,10 @@ from pathlib import Path
 import os
 import pandas as pd
 from fastapi import FastAPI, HTTPException
+from .data_access import get_result_store
 
 app = FastAPI(title="ChargeForward API", version="0.1.0")
-OUTPUT = Path(os.getenv("CHARGEFORWARD_OUTPUT", "data/processed"))
+OUTPUT = Path(os.getenv("CHARGEFORWARD_OUTPUT") or "data/processed")
 REQUIRED_OUTPUTS = (
     "state_forecast.csv",
     "county_forecasts.csv",
@@ -15,16 +16,16 @@ REQUIRED_OUTPUTS = (
 
 
 def _read(name: str) -> pd.DataFrame:
-    path = OUTPUT / name
-    if not path.exists():
-        raise HTTPException(503, f"Missing {name}; run the data pipeline first")
-    return pd.read_csv(path)
+    try:
+        return get_result_store(OUTPUT).read_frame(name)
+    except Exception as exc:
+        raise HTTPException(503, f"Unable to load {name}; run the pipeline and check the configured backend") from exc
 
 
 @app.get("/health")
 def health():
-    missing = [name for name in REQUIRED_OUTPUTS if not (OUTPUT / name).is_file()]
-    return {"ready": not missing, "missing_outputs": missing}
+    ready, missing = get_result_store(OUTPUT).available(REQUIRED_OUTPUTS)
+    return {"ready": ready, "missing_outputs": missing}
 
 
 @app.get("/counties")
@@ -46,9 +47,8 @@ def forecast(county: str):
 
 @app.get("/evaluation")
 def evaluation():
-    path = OUTPUT / "evaluation.json"
-    if not path.exists():
+    try:
+        report = get_result_store(OUTPUT).read_json("evaluation.json")
+    except (FileNotFoundError, OSError):
         raise HTTPException(503, "Run the data pipeline first")
-    import json
-    report = json.loads(path.read_text())
     return {"state_backtest": {k: v for k, v in report["state_backtest"].items() if k != "holdout_predictions"}, "panel_model": report["panel_model"], "clustering": report["clustering"], "county_error_summary": report["county_error_summary"], "uncertainty": report["uncertainty"], "interval_coverage": report["interval_coverage"]}

@@ -1,0 +1,38 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      CHARGEFORWARD_OUTPUT: /app/data/processed
+    volumes:
+      - ./data/processed:/app/data/processed:ro
+
+  dashboard:
+    build: .
+    command: ["streamlit", "run", "chargeforward/dashboard.py", "--server.address=0.0.0.0"]
+    ports:
+      - "8501:8501"
+    environment:
+      CHARGEFORWARD_OUTPUT: /app/data/processed
+    volumes:
+      - ./data/processed:/app/data/processed:ro
+
+  pipeline:
+    profiles: ["pipeline"]
+    build:
+      context: .
+      target: cloud
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - ./data:/app/data
+    command:
+      - python
+      - -m
+      - flows.chargeforward_pipeline
+      - --population
+      - ${POPULATION_SOURCE:-data/raw/Electric Vehicle Population Data.csv}
+      - --registrations
+      - ${REGISTRATION_SOURCE:-data/raw/Vehicle Registrations by Class and County.csv}

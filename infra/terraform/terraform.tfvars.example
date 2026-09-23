@@ -1,0 +1,4 @@
+aws_region          = "us-east-1"
+bucket_name         = "replace-with-a-globally-unique-chargeforward-bucket"
+raw_prefix           = "chargeforward/raw"
+create_pipeline_role = true
