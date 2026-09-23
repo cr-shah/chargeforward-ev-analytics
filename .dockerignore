@@ -3,3 +3,7 @@ data/raw
 .git
 __pycache__
 *.pyc
+.env
+.terraform
+*.tfstate*
+data/cache

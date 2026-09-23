@@ -1,26 +1,29 @@
 """Streamlit exploration of stock, transactions, backtests, and scenarios."""
-import json
+import os
 from pathlib import Path
 import pandas as pd
 import plotly.express as px
 import folium
 from streamlit_folium import st_folium
 from chargeforward.pipeline import assign_segments
+from chargeforward.data_access import get_result_store
 import streamlit as st
 
-OUTPUT = Path("data/processed")
+OUTPUT = Path(os.getenv("CHARGEFORWARD_OUTPUT") or "data/processed")
+STORE = get_result_store(OUTPUT)
 st.set_page_config(page_title="ChargeForward", layout="wide")
 st.title("ChargeForward | Washington EV planning")
 st.caption("EV fleet stock and electric registration transactions. No charger supply data is included.")
-if not (OUTPUT / "evaluation.json").exists():
+ready, _ = STORE.available(("evaluation.json", "county_segments.csv", "state_forecast.csv", "county_forecasts.csv"))
+if not ready:
     st.error("Run the pipeline first; see README.md.")
     st.stop()
-segments = pd.read_csv(OUTPUT / "county_segments.csv")
-flow = pd.read_csv(OUTPUT / "monthly_transactions.csv", parse_dates=["Date"])
-state = pd.read_csv(OUTPUT / "state_history.csv", parse_dates=["Date"])
-forecast = pd.read_csv(OUTPUT / "state_forecast.csv", parse_dates=["Date"])
-county_forecast = pd.read_csv(OUTPUT / "county_forecasts.csv", parse_dates=["Date"])
-evaluation = json.loads((OUTPUT / "evaluation.json").read_text())
+segments = STORE.read_frame("county_segments.csv")
+flow = STORE.read_frame("monthly_transactions.csv", parse_dates=["Date"])
+state = STORE.read_frame("state_history.csv", parse_dates=["Date"])
+forecast = STORE.read_frame("state_forecast.csv", parse_dates=["Date"])
+county_forecast = STORE.read_frame("county_forecasts.csv", parse_dates=["Date"])
+evaluation = STORE.read_json("evaluation.json")
 county = st.selectbox("County", ["Statewide"] + sorted(segments.County.tolist()))
 if county == "Statewide":
     history = state
@@ -50,7 +53,7 @@ st.caption("Poisson, Negative Binomial, Random Forest, Gradient Boosting, and th
 st.subheader("County segments and range sensitivity")
 st.caption("Segments use log EV fleet size, observed range share below the threshold, and recent electric transaction volume. K-Means is refitted when the threshold changes. Range coverage is incomplete and mixes BEV/PHEV electric-only range; this is not charger access.")
 threshold = st.slider("Range threshold (miles)", min_value=50, max_value=350, value=200, step=10)
-ranges = pd.read_csv(OUTPUT / "observed_ranges.csv")
+ranges = STORE.read_frame("observed_ranges.csv")
 low = ranges[ranges.Electric_Range < threshold].groupby("County").Vehicles.sum()
 total = ranges.groupby("County").Vehicles.sum()
 view = segments.copy()

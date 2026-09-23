@@ -1,6 +1,8 @@
-# ChargeForward: Washington EV analytics and forecasting
+# ChargeForward: cloud EV data engineering and forecasting
 
-A reproducible data science project rebuilt from an ATOM x AIS Colab draft. It preserves the original **EV stock versus registration flow**, **range cleaning**, **linear and polynomial forecasts**, **200-mile scenario**, and **three county segments**. It adds Poisson and Negative Binomial count models, county ML, uncertainty intervals, feature ablation, chronological evaluation, a Streamlit app, a FastAPI service, Docker, and automated tests.
+ChargeForward is an end-to-end data engineering and forecasting system for Washington electric-vehicle registrations. It moves public CSV sources through an optional **AWS S3 landing layer**, a task-oriented **Prefect workflow**, explicit data-quality checks, analytical **Snowflake** tables, the existing statistical/ML pipeline, and **FastAPI + Streamlit** serving. Every cloud integration has a local fallback, so the complete analytical workflow remains usable without AWS or Snowflake credentials.
+
+The system preserves the original EV stock-versus-registration analysis, range cleaning, linear and polynomial forecasts, 200-mile scenario, and three county segments. It also retains nine statistical/ML model configurations, Poisson and Negative Binomial count models, county ensemble ML, split-conformal intervals, feature ablation, six-window temporal robustness, Docker, and CI.
 
 > **Read the target carefully:** the registration dataset measures transactions, not new EV purchases. The project does not have a charger inventory, so it does not estimate charger supply or a 42% infrastructure gap.
 
@@ -19,6 +21,48 @@ A reproducible data science project rebuilt from an ATOM x AIS Colab draft. It p
 
 Data snapshot: supplied CSV files, analyzed September 16, 2026. See [data sources and definitions](#data-sources-and-definitions).
 
+## Architecture
+
+```mermaid
+flowchart LR
+    A[Public EV CSV sources] --> B{Source adapter}
+    B -->|Cloud| C[(AWS S3 raw landing)]
+    B -->|Local| D[Local raw files]
+    C --> E[Prefect orchestration]
+    D --> E
+    E --> F[Schema and row validation]
+    F --> G[Pandas cleaning and normalization]
+    G --> H[(Snowflake analytical warehouse)]
+    G --> I[(Local SQLite fallback)]
+    H --> J[Feature engineering and forecasting]
+    I --> J
+    J --> K[Forecast and evaluation tables]
+    K --> L[FastAPI]
+    K --> M[Streamlit and Folium]
+```
+
+### Data lifecycle
+
+1. **Ingestion:** `chargeforward.ingestion` accepts local CSV paths or `s3://` URIs. It records source URI, ingestion time, byte size, S3 ETag/last-modified metadata when available, and a SHA-256 checksum.
+2. **Incremental decision:** a successful-run manifest compares source identifiers and hashes. An unchanged pair with existing model artifacts is skipped unless `--force` is supplied.
+3. **Validation:** raw population and registration schemas are checked before transformation. Invalid dates/counts, negative values, missing county identifiers, malformed numeric fields, and duplicates are counted in `validation_summary.json`; errors stop the flow and warnings remain visible.
+4. **Transformation:** the existing pandas logic filters Washington counties, deduplicates vehicle IDs, distinguishes observed/imputed range, and builds county-month transaction aggregates.
+5. **Analytical storage:** county-month facts, past-only modeling features, ingestion metadata, and long-form forecasts are loaded into SQLite locally or Snowflake in cloud mode. Snowflake uses temporary staging tables and key-based `MERGE` statements.
+6. **Modeling:** the preserved chronological evaluation compares statewide trend/ensemble methods and county count/ensemble methods, then writes forecasts, diagnostics, uncertainty tables, and serialized model artifacts.
+7. **Serving:** FastAPI and Streamlit read local outputs by default. Setting `CHARGEFORWARD_DATA_BACKEND=snowflake` allows forecast and transaction reads from Snowflake while retaining local JSON/diagnostic artifacts.
+
+## Technology stack
+
+| Layer | Technologies |
+|---|---|
+| Ingestion and transformation | Python, pandas, NumPy, boto3, SHA-256 manifests |
+| Orchestration and observability | Prefect tasks/flows, retries, structured task logging |
+| Analytical warehouse | Snowflake, SQL staging tables, incremental `MERGE`; SQLite local fallback |
+| Statistics and ML | statsmodels, scikit-learn, joblib |
+| Infrastructure | Terraform, encrypted/versioned S3, least-privilege IAM policy and optional worker role |
+| Applications | FastAPI, Uvicorn, Streamlit, Plotly, Folium |
+| Delivery and quality | Docker, Docker Compose, pytest/unittest, GitHub Actions |
+
 ![Statewide monthly electric transactions and 12-month exploratory forecast](docs/figures/01-state-trend.png)
 
 The blue series is observed registration activity. The dashed orange series is the model chosen on earlier rolling validation. Its final-year performance was weak, so the extension is an exploratory scenario.
@@ -26,21 +70,6 @@ The blue series is observed registration activity. The dashed orange series is t
 ## Modeling design
 
 **Questions this project investigates:** **RQ1 Predictability:** Can historical transactions predict next-month county activity? **RQ2 Complexity:** Do nonlinear ML models consistently beat seasonal and statistical baselines? **RQ3 Heterogeneity:** Where do errors differ across counties? **RQ4 Stability:** Do model rankings remain stable across years?
-
-```mermaid
-flowchart LR
-    A[WA EV population snapshot] --> B[County stock and observed range coverage]
-    C[Vehicle registration transactions] --> D[County-month flow]
-    B --> E[Three K-Means county segments]
-    D --> E
-    D --> F[Six statewide 12-month forecasting methods]
-    D --> G[County one-month-ahead statistical and ML models]
-    F --> H[Chronological validation and historical final evaluation]
-    G --> H
-    E --> I[Streamlit scenarios]
-    H --> I
-    H --> J[FastAPI forecast and evaluation endpoints]
-```
 
 ### 1. Statewide 12-month forecast
 
@@ -189,15 +218,15 @@ The transaction history also has seasonality and a clear change in level over ti
 
 ![Calendar heatmap of electric registration transactions](docs/figures/08-calendar-heatmap.png)
 
-## Run locally
+## Local setup
 
 Use Python 3.10+. Download the two linked CSVs below, or use the copies supplied with this project. Place them in `data/raw/` with the filenames shown. Raw and processed files are excluded from Git because they are large and updated by the source.
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -e '.[app,api,viz,test]'
-python -m chargeforward.pipeline \
+pip install -e '.[app,api,viz,test,cloud]'
+python -m flows.chargeforward_pipeline \
   --population 'data/raw/Electric Vehicle Population Data.csv' \
   --registrations 'data/raw/Vehicle Registrations by Class and County.csv'
 python scripts/generate_figures.py
@@ -214,15 +243,77 @@ uvicorn chargeforward.api:app --reload
 
 API routes: `/health`, `/counties`, `/forecast/{county}`, `/forecast/statewide`, `/evaluation`, and interactive docs at `/docs`. The dashboard offers county selection, forecasts, evaluation tables, a range-threshold slider, and a Folium segment map.
 
-Run tests and package the API:
+The Prefect flow uses a local SQLite warehouse by default. A second run with identical source hashes returns `source_hashes_unchanged`; pass `--force` to rebuild intentionally. The original `python -m chargeforward.pipeline ...` entry point remains supported for a modeling-only local run.
+
+## Cloud configuration
+
+Copy `.env.example` to `.env` and populate only the services you intend to use. Credentials are read from the environment or the standard AWS credential chain and must never be committed.
+
+### AWS S3 landing layer
+
+Provision the bucket and pipeline IAM resources, review the plan, and apply it explicitly:
 
 ```bash
-python -m unittest discover -s tests -v
-docker build -t chargeforward .
+cd infra/terraform
+cp terraform.tfvars.example terraform.tfvars
+terraform init
+terraform fmt -check
+terraform validate
+terraform plan -out chargeforward.tfplan
+# terraform apply chargeforward.tfplan  # only after reviewing the plan
+```
+
+Upload source objects with the configured IAM identity, then pass their URIs to the same flow:
+
+```bash
+python scripts/upload_sources.py \
+  --population 'data/raw/Electric Vehicle Population Data.csv' \
+  --registrations 'data/raw/Vehicle Registrations by Class and County.csv'
+python -m flows.chargeforward_pipeline \
+  --population 's3://YOUR_BUCKET/chargeforward/raw/population.csv' \
+  --registrations 's3://YOUR_BUCKET/chargeforward/raw/registrations.csv'
+```
+
+S3 is the durable raw landing layer because it separates immutable source retention from compute and analytical storage. Bucket versioning, server-side encryption, public-access blocking, lifecycle management, and prefix-scoped IAM permissions are declared in Terraform.
+
+### Snowflake analytical warehouse
+
+Set `CHARGEFORWARD_WAREHOUSE=snowflake` plus the `SNOWFLAKE_*` variables in `.env.example`. The flow creates the schema from `sql/001_analytics_schema.sql`, stages pandas frames into temporary tables, and uses deterministic-key `MERGE` operations for county-month facts, modeling features, forecasts, and ingestion metadata. Snowflake is used for analytical concurrency and SQL access to curated tables; large raw files remain in S3.
+
+Set `CHARGEFORWARD_DATA_BACKEND=snowflake` to have FastAPI and Streamlit read forecast and county-month tables from Snowflake. Evaluation JSON, range scenarios, and published diagnostics retain the local generated-artifact fallback.
+
+### Containers
+
+```bash
+docker compose up --build api dashboard
+POPULATION_SOURCE='s3://YOUR_BUCKET/chargeforward/raw/population.csv' \
+REGISTRATION_SOURCE='s3://YOUR_BUCKET/chargeforward/raw/registrations.csv' \
+docker compose --profile pipeline run --rm pipeline
+```
+
+The default image serves the API. The separate `cloud` build target adds Prefect, boto3, and the Snowflake connector for pipeline runs without burdening the API image with unused orchestration dependencies.
+
+## Testing and CI
+
+Run the complete suite and package checks:
+
+```bash
+python -m pytest -q
+python -m compileall -q chargeforward flows
+docker build --target api -t chargeforward .
 docker run --rm -p 8000:8000 chargeforward
 ```
 
-Build the processed artifacts before building the Docker image. The image serves the API on port 8000. GitHub Actions runs the test suite on every push and pull request.
+Cloud tests use injected S3 clients and the SQLite warehouse; they do not require live credentials. Tests cover local/S3 ingestion, checksums, raw validation, duplicate/idempotent behavior, warehouse upserts, orchestration skip decisions, temporal leakage, chronological splits, uncertainty quantiles, and API readiness. GitHub Actions runs pytest, compilation checks, and an API Docker build on every push and pull request.
+
+## Design decisions
+
+- **S3 as landing storage:** raw-source durability, versioning, and decoupling from compute.
+- **Prefect as orchestrator:** explicit task boundaries, retries around external I/O, parameterized local/cloud sources, and failure propagation before manifests are committed.
+- **Snowflake as the warehouse:** SQL-friendly curated facts/features/forecasts and independent scaling for analytics consumers.
+- **Checksum incrementality:** SHA-256 detects content changes even if filenames are reused. The manifest is committed only after validation, modeling, and warehouse loading succeed.
+- **Local-first operation:** local files plus SQLite exercise the same lifecycle without paid cloud accounts; AWS/Snowflake adapters activate through environment configuration.
+- **Preserved model evidence:** cloud work wraps the tested analytics instead of changing reported metrics or retraining claims.
 
 ## Data sources and definitions
 
@@ -231,20 +322,27 @@ Build the processed artifacts before building the Docker image. The image serves
 | [Electric Vehicle Population Data](https://catalog.data.gov/dataset/electric-vehicle-population-data) | EV fleet snapshot, model, range, location, BEV share | Filter `State == WA`, restrict to 39 WA counties, deduplicate DOL vehicle ID |
 | [Vehicle Registrations by Class and County](https://catalog.data.gov/dataset/vehicle-registrations-by-class-and-county) | Monthly registration activity | Use **Residential County**, month of `Transaction Date`, `Fuel Type == Electric`, sum `Count` |
 
-The registration file's `Electric` fuel code is used as provided; it is not separately labeled BEV versus PHEV. `Hybrid` is excluded from electric-flow forecasts. County map markers use median vehicle coordinates, not charger locations or county centroids. The API and dashboard read locally generated outputs; they do not claim live data ingestion.
+The registration file's `Electric` fuel code is used as provided; it is not separately labeled BEV versus PHEV. `Hybrid` is excluded from electric-flow forecasts. County map markers use median vehicle coordinates, not charger locations or county centroids.
 
 ## Repository layout
 
 | Path | Purpose |
 |---|---|
-| `chargeforward/pipeline.py` | CSV ingestion, cleaning, imputation, county segments, outputs |
+| `chargeforward/ingestion.py`, `validation.py` | Local/S3 materialization, metadata, checksums, and explicit quality reports |
+| `flows/chargeforward_pipeline.py` | Prefect ingestion → validation → transformation → features → modeling → warehouse flow |
+| `chargeforward/warehouse.py` | SQLite and Snowflake analytical warehouse adapters with upserts/MERGE |
+| `chargeforward/config.py`, `data_access.py` | Environment configuration and local/Snowflake application reads |
+| `chargeforward/pipeline.py` | Cleaning, imputation, county segments, model outputs |
 | `chargeforward/forecasting.py` | Six statewide 12-month methods and rolling backtest |
 | `chargeforward/panel.py`, `statistical_models.py` | County ML, seasonal baseline, and count models |
 | `chargeforward/ablation.py`, `uncertainty.py`, `diagnostics.py` | Feature groups, time-aware intervals, and robustness analysis |
 | `chargeforward/dashboard.py` | Streamlit exploration and interactive Folium map |
 | `chargeforward/api.py` | FastAPI forecasts and evaluation |
+| `scripts/upload_sources.py` | Upload local raw CSVs to the configured S3 landing prefix |
 | `scripts/generate_figures.py` | Rebuild figures from processed outputs |
 | `scripts/publish_results.py` | Copy compact result CSVs into `docs/results/` for GitHub review |
 | `scripts/verify_report.py` | Check README figures, key metrics, and published CSVs against a fresh run |
+| `sql/001_analytics_schema.sql` | Snowflake curated table definitions |
+| `infra/terraform/` | Versioned/encrypted S3, public-access controls, IAM policy and worker role |
+| `docker-compose.yml` | API, dashboard, and opt-in pipeline services |
 | `data/processed/evaluation.json` | Local reproducible metrics after pipeline run |
-

@@ -8,5 +8,22 @@ data/processed/*
 !data/processed/.gitkeep
 *.joblib
 .DS_Store
+.env
+.env.*
+!.env.example
+.aws/
+credentials
+data/cache/
+*.db
+*.sqlite*
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
 
 *.egg-info/

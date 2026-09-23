@@ -88,10 +88,17 @@ def assign_segments(frame: pd.DataFrame) -> pd.DataFrame:
     out["Market_Segment"] = out.Cluster.map(names)
     return out
 
-def build(population_csv: Path, registrations_csv: Path, output: Path, threshold: int = 200) -> dict:
+def build_from_frames(
+    vehicles: pd.DataFrame,
+    stock: pd.DataFrame,
+    flow: pd.DataFrame,
+    pop_audit: dict,
+    reg_audit: dict,
+    output: Path,
+    threshold: int = 200,
+) -> dict:
+    """Run feature engineering, evaluation, forecasting, and artifact persistence."""
     output.mkdir(parents=True, exist_ok=True)
-    vehicles, stock, pop_audit = load_stock(population_csv)
-    _, flow, reg_audit = load_flow(registrations_csv)
     counties = segment_counties(vehicles, stock, flow, threshold)
     panel_predictions, panel_county, panel_report, panel_models = evaluate_panel(flow)
     county_errors, macro, county_summary = county_error_analysis(panel_predictions, panel_report["selected_statistical"], panel_report["selected_ml"])
@@ -139,6 +146,13 @@ def build(population_csv: Path, registrations_csv: Path, output: Path, threshold
     report = {"data": {**pop_audit, **reg_audit}, "clustering": {"silhouette": counties.attrs.get("silhouette"), "threshold_miles": threshold}, "panel_model": panel_report, "county_error_summary": county_summary, "error_driver_summary": error_summary, "uncertainty": uncertainty_report, "interval_coverage": coverage.to_dict("records"), "state_backtest": evaluation, "county_backtests": county_scores, "notes": ["Registration counts are transactions, not new vehicles or charger installations.", "Range threshold uses only records with observed positive range; imputed range is excluded from this risk percentage.", "No charger inventory is present, so a supply gap is not estimated."]}
     (output / "evaluation.json").write_text(json.dumps(report, indent=2))
     return report
+
+
+def build(population_csv: Path, registrations_csv: Path, output: Path, threshold: int = 200) -> dict:
+    """Preserve the original local entry point while sharing cloud-flow stages."""
+    vehicles, stock, pop_audit = load_stock(population_csv)
+    _, flow, reg_audit = load_flow(registrations_csv)
+    return build_from_frames(vehicles, stock, flow, pop_audit, reg_audit, output, threshold)
 
 
 def main() -> None:
