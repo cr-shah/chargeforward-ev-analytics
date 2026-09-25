@@ -1,10 +1,11 @@
 # ChargeForward: cloud EV data engineering and forecasting
 
+By: Chaitanya Raj Shah
+
 ChargeForward is an end-to-end data engineering and forecasting system for Washington electric-vehicle registrations. It moves public CSV sources through an optional **AWS S3 landing layer**, a task-oriented **Prefect workflow**, explicit data-quality checks, analytical **Snowflake** tables, the existing statistical/ML pipeline, and **FastAPI + Streamlit** serving. Every cloud integration has a local fallback, so the complete analytical workflow remains usable without AWS or Snowflake credentials.
 
 The system preserves the original EV stock-versus-registration analysis, range cleaning, linear and polynomial forecasts, 200-mile scenario, and three county segments. It also retains nine statistical/ML model configurations, Poisson and Negative Binomial count models, county ensemble ML, split-conformal intervals, feature ablation, six-window temporal robustness, Docker, and CI.
 
-> **Read the target carefully:** the registration dataset measures transactions, not new EV purchases. The project does not have a charger inventory, so it does not estimate charger supply or a 42% infrastructure gap.
 
 ## Results at a glance
 
