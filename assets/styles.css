@@ -101,6 +101,13 @@ nav a:hover, nav a:focus-visible { color: var(--white); }
 .hero h1 { max-width: 860px; margin: 28px 0 32px; font-size: clamp(58px, 7.3vw, 120px); font-weight: 600; letter-spacing: -.075em; line-height: .87; }
 .hero h1 em { color: var(--acid); font-style: normal; }
 .hero-lede { max-width: 700px; margin: 0; color: rgba(255,255,255,.7); font-size: clamp(17px, 1.35vw, 21px); line-height: 1.65; }
+.why-matters { max-width: 750px; margin-top: 30px; padding: 17px 20px 18px; border-left: 3px solid var(--acid); background: rgba(213,255,70,.07); }
+.why-matters > span { color: var(--acid); font-family: var(--mono); font-size: 9px; font-weight: 500; letter-spacing: .13em; }
+.why-matters p { margin: 7px 0 6px; color: var(--white); font-size: clamp(15px, 1.15vw, 18px); line-height: 1.45; }
+.why-matters p strong { font-weight: 700; }
+.why-matters small { display: block; color: rgba(255,255,255,.43); font-size: 10px; line-height: 1.55; }
+.why-matters a { color: rgba(255,255,255,.72); text-underline-offset: 3px; }
+.why-matters a:hover { color: var(--acid); }
 .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 40px; }
 .button { display: inline-flex; align-items: center; justify-content: center; gap: 26px; min-height: 54px; padding: 0 22px; border: 1px solid transparent; text-decoration: none; font-size: 13px; font-weight: 800; transition: transform .2s, background .2s, color .2s; }
 .button:hover { transform: translateY(-3px); }
@@ -363,6 +370,8 @@ footer > div a:hover { color: var(--acid); }
   .hero { min-height: auto; }
   .hero h1 { font-size: 57px; }
   .hero-lede { font-size: 16px; }
+  .why-matters { margin-top: 25px; padding: 15px 16px; }
+  .why-matters p { font-size: 15px; }
   .hero-actions { display: grid; }
   .button { width: 100%; }
   .hero-stats article { padding: 20px 12px; }
