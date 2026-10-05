@@ -1,0 +1,82 @@
+"""Fast static checks for the GitHub Pages case study."""
+
+from __future__ import annotations
+
+from html.parser import HTMLParser
+from pathlib import Path
+from urllib.parse import urlparse
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+class PageParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.ids: set[str] = set()
+        self.links: list[tuple[str, str]] = []
+        self.images: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        values = dict(attrs)
+        if values.get("id"):
+            self.ids.add(values["id"] or "")
+        if tag in {"a", "link", "script"}:
+            target = values.get("href") or values.get("src")
+            if target:
+                self.links.append((tag, target))
+        if tag == "img" and values.get("src"):
+            self.images.append(values["src"] or "")
+
+
+def main() -> None:
+    index = ROOT / "index.html"
+    parser = PageParser()
+    parser.feed(index.read_text(encoding="utf-8"))
+    errors: list[str] = []
+
+    for tag, target in parser.links:
+        if target.startswith("#"):
+            if target[1:] not in parser.ids:
+                errors.append(f"missing anchor target: {target}")
+            continue
+        parsed = urlparse(target)
+        if parsed.scheme in {"http", "https", "mailto"}:
+            continue
+        path = (ROOT / parsed.path).resolve()
+        if ROOT not in path.parents and path != ROOT:
+            errors.append(f"path escapes repository: {target}")
+        elif not path.exists():
+            errors.append(f"missing {tag} asset: {target}")
+
+    for target in parser.images:
+        parsed = urlparse(target)
+        if not parsed.scheme and not (ROOT / parsed.path).exists():
+            errors.append(f"missing image: {target}")
+
+    required = [
+        "assets/site-data.js",
+        "assets/app.js",
+        "assets/styles.css",
+        "assets/favicon.svg",
+        "assets/chargeforward-social.png",
+        ".nojekyll",
+    ]
+    errors.extend(f"missing required file: {name}" for name in required if not (ROOT / name).exists())
+
+    html = index.read_text(encoding="utf-8")
+    site_data = (ROOT / "assets" / "site-data.js").read_text(encoding="utf-8")
+    for claim in ["92.95", "10.3%", "75.9%"]:
+        if claim not in html:
+            errors.append(f"missing verified headline claim: {claim}")
+    for marker in ['"vehicles":298916', '"transactions":576457', '"mlBetterCounties":34']:
+        if marker not in site_data:
+            errors.append(f"missing verified data marker: {marker}")
+
+    if errors:
+        raise SystemExit("Site verification failed:\n- " + "\n- ".join(errors))
+    print(f"Site verification passed: {len(parser.ids)} ids, {len(parser.links)} linked resources")
+
+
+if __name__ == "__main__":
+    main()

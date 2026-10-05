@@ -13,4 +13,7 @@ jobs:
       - run: pip install '.[test,api,cloud]'
       - run: python -m pytest -q
       - run: python -m compileall -q chargeforward flows
+      - run: python scripts/build_site_data.py
+      - run: git diff --exit-code assets/site-data.js
+      - run: python scripts/verify_site.py
       - run: docker build --target api -t chargeforward-api:ci .
