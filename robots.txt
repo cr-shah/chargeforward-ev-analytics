@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://cr-shah.github.io/chargeforward-ev-analytics/sitemap.xml

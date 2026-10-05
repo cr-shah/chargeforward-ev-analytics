@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b0c0b">
+  <meta name="description" content="ChargeForward is an end-to-end Washington EV registration intelligence system: 39 counties, 576,457 transactions, evaluated forecasting, uncertainty analysis, and production data engineering.">
+  <meta name="author" content="Chaitanya Shah">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="ChargeForward — Washington EV Intelligence">
+  <meta property="og:description" content="Explore the real model evidence behind an end-to-end EV registration forecasting system.">
+  <meta property="og:url" content="https://cr-shah.github.io/chargeforward-ev-analytics/">
+  <meta property="og:image" content="https://cr-shah.github.io/chargeforward-ev-analytics/assets/chargeforward-social.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="ChargeForward — Washington EV Intelligence">
+  <meta name="twitter:description" content="From 1.5M raw rows to county-level forecasts, diagnostics, and deployable infrastructure.">
+  <meta name="twitter:image" content="https://cr-shah.github.io/chargeforward-ev-analytics/assets/chargeforward-social.png">
+  <link rel="canonical" href="https://cr-shah.github.io/chargeforward-ev-analytics/">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/styles.css?v=1">
+  <title>ChargeForward — Washington EV Intelligence</title>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    "name": "ChargeForward",
+    "description": "Washington EV registration analytics, forecasting, uncertainty analysis, and cloud data engineering.",
+    "codeRepository": "https://github.com/cr-shah/chargeforward-ev-analytics",
+    "programmingLanguage": ["Python", "JavaScript", "SQL", "HCL"],
+    "author": {"@type": "Person", "name": "Chaitanya Shah"}
+  }
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to the analysis</a>
+  <div class="progress" aria-hidden="true"><span id="scroll-progress"></span></div>
+
+  <header class="site-header">
+    <a class="brand" href="./" aria-label="ChargeForward home">
+      <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span>ChargeForward</span>
+    </a>
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav">
+      <span></span><span></span><span></span><span class="sr-only">Open navigation</span>
+    </button>
+    <nav id="site-nav" aria-label="Main navigation">
+      <a href="#analysis">Analysis</a>
+      <a href="#findings">Findings</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#decisions">Decisions</a>
+      <a class="nav-source" href="https://github.com/cr-shah/chargeforward-ev-analytics" target="_blank" rel="noreferrer">Source <span aria-hidden="true">↗</span></a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-grid" aria-hidden="true"></div>
+      <div class="orb orb-a" aria-hidden="true"></div>
+      <div class="orb orb-b" aria-hidden="true"></div>
+      <div class="hero-copy reveal">
+        <p class="eyebrow"><span class="status-dot"></span> Washington EV intelligence / built end to end</p>
+        <h1 id="hero-title">Evidence for the next <em>electric mile.</em></h1>
+        <p class="hero-lede">A production-minded data and ML system that turns public vehicle records into county-level forecasts, calibrated uncertainty, and honest planning signals.</p>
+        <div class="hero-actions">
+          <a class="button button-primary" href="#analysis">Explore the analysis <span aria-hidden="true">↓</span></a>
+          <a class="button button-ghost" href="https://github.com/cr-shah/chargeforward-ev-analytics" target="_blank" rel="noreferrer">View source <span aria-hidden="true">↗</span></a>
+        </div>
+        <p class="hero-note"><strong>Built independently.</strong> Data ingestion → validation → modeling → API → dashboard → cloud infrastructure.</p>
+      </div>
+
+      <div class="hero-instrument reveal" aria-label="Animated model signal showing six historical evaluation windows">
+        <div class="instrument-topline">
+          <span>MODEL SIGNAL / 06 WINDOWS</span>
+          <span class="live-chip"><i></i> EVALUATED</span>
+        </div>
+        <svg id="hero-chart" role="img" aria-label="Poisson, Random Forest, and seasonal baseline RMSE across six historical periods"></svg>
+        <div class="instrument-readout">
+          <div><span>SELECTED MODEL</span><strong>Poisson GLM</strong></div>
+          <div><span>FINAL RMSE</span><strong>92.95</strong></div>
+          <div><span>FINAL R²</span><strong>0.9546</strong></div>
+        </div>
+      </div>
+
+      <div class="hero-stats reveal" aria-label="Project statistics">
+        <article><span class="stat-number" data-count="298916">0</span><small>unique WA EVs</small></article>
+        <article><span class="stat-number" data-count="576457">0</span><small>electric transactions</small></article>
+        <article><span class="stat-number" data-count="39">0</span><small>counties modeled</small></article>
+        <article><span class="stat-number" data-count="10.3" data-decimals="1" data-suffix="%">0</span><small>lower RMSE vs baseline</small></article>
+      </div>
+    </section>
+
+    <section class="thesis section-pad" id="overview">
+      <div class="section-index reveal">00 / THE PREMISE</div>
+      <div class="thesis-copy reveal">
+        <h2>Public data is easy to download.<br><span>Reliable evidence is harder.</span></h2>
+        <p>ChargeForward joins two Washington State data products with different units and timelines. It validates their schemas, isolates information that exists at prediction time, compares statistical and machine learning models, and preserves every caveat needed to use the output responsibly.</p>
+      </div>
+      <div class="thesis-contrast reveal">
+        <div><span>INPUT</span><strong>1.53M</strong><p>raw registration rows inspected</p></div>
+        <div class="connector" aria-hidden="true"><i></i><i></i><i></i><b>→</b></div>
+        <div><span>OUTPUT</span><strong>468</strong><p>county-month final evaluation examples</p></div>
+      </div>
+    </section>
+
+    <section class="lab section-pad" id="analysis" aria-labelledby="lab-title">
+      <div class="section-heading reveal">
+        <div>
+          <p class="section-index">01 / INTERACTIVE MODEL LAB</p>
+          <h2 id="lab-title">Interrogate the evidence.</h2>
+        </div>
+        <p>Every mark below is rendered from the repository's committed evaluation artifacts. Change the view, select a county, or stress-test a range threshold.</p>
+      </div>
+
+      <div class="lab-shell reveal">
+        <div class="lab-tabs" role="tablist" aria-label="Analysis views">
+          <button class="lab-tab active" type="button" role="tab" aria-selected="true" aria-controls="panel-models" id="tab-models" data-panel="models"><span>01</span> Model race</button>
+          <button class="lab-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-county" id="tab-county" data-panel="county"><span>02</span> County lens</button>
+          <button class="lab-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-range" id="tab-range" data-panel="range"><span>03</span> Range scenario</button>
+          <button class="lab-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-stability" id="tab-stability" data-panel="stability"><span>04</span> Stability</button>
+        </div>
+
+        <div class="lab-panel active" id="panel-models" role="tabpanel" aria-labelledby="tab-models">
+          <div class="panel-copy">
+            <p class="micro-label">HISTORICAL FINAL EVALUATION / AUG 2025–JUL 2026</p>
+            <h3>Simple count modeling wins.</h3>
+            <p>Five models predicted next-month registration transactions for all 39 counties. The Poisson GLM achieved the lowest pooled error, beating the prior-year seasonal baseline by <strong>10.3%</strong> on RMSE.</p>
+            <div class="segmented-control" aria-label="Metric">
+              <button class="metric-toggle active" type="button" data-metric="rmse">RMSE</button>
+              <button class="metric-toggle" type="button" data-metric="mae">MAE</button>
+              <button class="metric-toggle" type="button" data-metric="wape_pct">WAPE</button>
+              <button class="metric-toggle" type="button" data-metric="r2">R²</button>
+            </div>
+            <div class="definition" id="model-definition"><span>RMSE</span> Penalizes large misses more heavily. Lower is better.</div>
+          </div>
+          <div class="chart-wrap">
+            <div class="chart-title"><span id="model-metric-title">Root mean squared error</span><small>LOWER IS BETTER</small></div>
+            <svg id="model-chart" role="img" aria-label="Model comparison bar chart"></svg>
+          </div>
+        </div>
+
+        <div class="lab-panel" id="panel-county" role="tabpanel" aria-labelledby="tab-county" hidden>
+          <div class="panel-copy">
+            <p class="micro-label">12-MONTH COUNTY DIAGNOSTIC</p>
+            <label class="select-label" for="county-select">Explore one of 39 counties</label>
+            <div class="select-wrap">
+              <select id="county-select" aria-label="Select a Washington county"></select>
+            </div>
+            <div class="county-kpis">
+              <div><span>Seasonal RMSE</span><strong id="county-baseline">—</strong></div>
+              <div><span>Poisson RMSE</span><strong id="county-poisson">—</strong></div>
+              <div><span>Random Forest RMSE</span><strong id="county-rf">—</strong></div>
+            </div>
+            <p class="county-verdict" id="county-verdict"></p>
+          </div>
+          <div class="chart-wrap county-chart-wrap">
+            <div class="chart-title"><span>Observed vs ML prediction</span><small><i class="legend-dot actual"></i> ACTUAL <i class="legend-dot predicted"></i> RANDOM FOREST <i class="legend-band"></i> 80% INTERVAL</small></div>
+            <svg id="county-chart" role="img" aria-label="Monthly actual and predicted transactions with uncertainty interval"></svg>
+            <div class="chart-tooltip" id="county-tooltip" role="status" aria-live="polite"></div>
+          </div>
+        </div>
+
+        <div class="lab-panel" id="panel-range" role="tabpanel" aria-labelledby="tab-range" hidden>
+          <div class="panel-copy range-copy">
+            <p class="micro-label">THRESHOLD SENSITIVITY / MEASURED RANGE ONLY</p>
+            <h3>One cutoff changes the story.</h3>
+            <p>Adjust the threshold to see how the measured fleet is classified. Only <strong>34.5%</strong> of EV records have a positive observed range, so the denominator remains visible.</p>
+            <label for="range-slider">Selected threshold <output id="range-output" for="range-slider">200 miles</output></label>
+            <input id="range-slider" type="range" min="150" max="300" step="50" value="200">
+            <div class="range-ticks" aria-hidden="true"><span>150</span><span>200</span><span>250</span><span>300 mi</span></div>
+          </div>
+          <div class="range-visual" aria-live="polite">
+            <div class="ring-block">
+              <div class="range-ring" data-type="all"><span id="range-all">68.8%</span></div>
+              <strong>All measured EVs</strong><small>103,142 observed vehicles</small>
+            </div>
+            <div class="ring-block">
+              <div class="range-ring" data-type="bev"><span id="range-bev">29.1%</span></div>
+              <strong>Battery EVs</strong><small>electric driving range</small>
+            </div>
+            <div class="ring-block">
+              <div class="range-ring" data-type="phev"><span id="range-phev">100%</span></div>
+              <strong>Plug-in hybrids</strong><small>electric-only range</small>
+            </div>
+            <p class="range-caveat"><span aria-hidden="true">!</span> BEV total range and PHEV electric-only range are different concepts. This scenario describes recorded range; it does not measure charging access or “range anxiety.”</p>
+          </div>
+        </div>
+
+        <div class="lab-panel" id="panel-stability" role="tabpanel" aria-labelledby="tab-stability" hidden>
+          <div class="panel-copy">
+            <p class="micro-label">SIX ROLLING EVALUATION WINDOWS</p>
+            <h3>Model rankings move.</h3>
+            <p>Poisson leads four windows and Random Forest leads two. Performance changes as transaction volumes and year-over-year behavior change—a reason to monitor models instead of treating one test score as permanent.</p>
+            <div class="stability-key">
+              <span><i class="key-line poisson"></i> Poisson GLM</span>
+              <span><i class="key-line forest"></i> Random Forest</span>
+              <span><i class="key-line baseline"></i> Seasonal baseline</span>
+            </div>
+          </div>
+          <div class="chart-wrap">
+            <div class="chart-title"><span>RMSE by evaluation year</span><small>LOWER IS BETTER</small></div>
+            <svg id="stability-chart" role="img" aria-label="Model RMSE across six chronological evaluation windows"></svg>
+          </div>
+        </div>
+      </div>
+      <p class="lab-source reveal">Data source: Washington State Department of Licensing public records. Snapshot analyzed September 16, 2026. Registration counts are transactions and may include repeat activity.</p>
+    </section>
+
+    <section class="findings section-pad" id="findings" aria-labelledby="findings-title">
+      <div class="section-heading reveal">
+        <div>
+          <p class="section-index">02 / WHAT SURVIVED CONTACT WITH THE DATA</p>
+          <h2 id="findings-title">The interesting result was not “ML wins.”</h2>
+        </div>
+        <p>Useful model work means showing where an approach succeeds, where it fails, and why the aggregate score can hide the local story.</p>
+      </div>
+      <div class="finding-grid">
+        <article class="finding finding-hero reveal">
+          <div class="finding-number">10.3<span>%</span></div>
+          <h3>Lower pooled RMSE</h3>
+          <p>Poisson GLM reached <strong>92.95 RMSE</strong> versus <strong>103.59</strong> for the prior-year baseline across 468 county-month examples.</p>
+          <div class="mini-bars" aria-label="Poisson RMSE 92.95 versus baseline 103.59"><i style="--w:89.7%"></i><i style="--w:100%"></i></div>
+        </article>
+        <article class="finding finding-dark reveal">
+          <div class="finding-kicker">LOCAL ≠ POOLED</div>
+          <div class="finding-number">34<span>/39</span></div>
+          <h3>Counties where RF beat baseline</h3>
+          <p>Random Forest improved most counties, yet a large King County miss made its pooled RMSE worse. The metric and the aggregation level change the conclusion.</p>
+        </article>
+        <article class="finding finding-outline reveal">
+          <div class="coverage-gauge"><span style="--coverage:75.9%"></span><strong>75.9%</strong><small>observed</small></div>
+          <h3>80% interval coverage</h3>
+          <p>Split conformal intervals undercovered by 4.1 points. The site exposes that weakness instead of turning uncertainty into a confidence claim.</p>
+        </article>
+        <article class="finding finding-acid reveal">
+          <div class="finding-kicker">MODEL SELECTION RISK</div>
+          <div class="finding-number">−1.52</div>
+          <h3>Statewide polynomial R²</h3>
+          <p>Earlier validation favored a polynomial trend. It failed in the final historical year, demonstrating why temporal backtests and simple baselines matter.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="architecture section-pad" id="architecture" aria-labelledby="architecture-title">
+      <div class="section-heading reveal">
+        <div>
+          <p class="section-index">03 / SYSTEM DESIGN</p>
+          <h2 id="architecture-title">From public files to served predictions.</h2>
+        </div>
+        <p>The same analytical code runs locally or through cloud adapters. Every stage leaves auditable artifacts, so model claims can be traced back to source metadata and validation output.</p>
+      </div>
+      <div class="pipeline reveal" aria-label="ChargeForward data pipeline">
+        <article><span>01</span><i aria-hidden="true">↓</i><strong>Ingest</strong><p>Local CSV or encrypted S3 landing with SHA-256 manifests</p><small>Python · boto3</small></article>
+        <article><span>02</span><i aria-hidden="true">↓</i><strong>Validate</strong><p>Schema, row, date, count, county, and duplication checks</p><small>Pandas · quality gates</small></article>
+        <article><span>03</span><i aria-hidden="true">↓</i><strong>Transform</strong><p>Past-only county features and explicit range provenance</p><small>NumPy · feature engineering</small></article>
+        <article><span>04</span><i aria-hidden="true">↓</i><strong>Model</strong><p>Chronological comparison, diagnostics, and conformal intervals</p><small>statsmodels · scikit-learn</small></article>
+        <article><span>05</span><i aria-hidden="true">↓</i><strong>Store</strong><p>Incremental warehouse tables with a local SQLite fallback</p><small>Snowflake · SQL</small></article>
+        <article><span>06</span><i aria-hidden="true">✓</i><strong>Serve</strong><p>Versionable outputs for API, dashboard, and this case study</p><small>FastAPI · Streamlit · Pages</small></article>
+      </div>
+      <div class="stack-row reveal" aria-label="Technology stack">
+        <span>PYTHON</span><span>PANDAS</span><span>STATSMODELS</span><span>SCIKIT-LEARN</span><span>PREFECT</span><span>SNOWFLAKE</span><span>AWS S3</span><span>FASTAPI</span><span>DOCKER</span><span>TERRAFORM</span><span>GITHUB ACTIONS</span>
+      </div>
+    </section>
+
+    <section class="decisions section-pad" id="decisions" aria-labelledby="decisions-title">
+      <div class="decision-intro reveal">
+        <p class="section-index">04 / ENGINEERING JUDGMENT</p>
+        <h2 id="decisions-title">The choices behind the score.</h2>
+        <p>A model is only as credible as the decisions around its data, evaluation, and failure handling.</p>
+      </div>
+      <div class="decision-list">
+        <article class="reveal">
+          <span>01</span>
+          <div><h3>Time before randomness</h3><p>All model selection uses expanding or chronological splits. No random train/test split lets future transaction patterns leak backward.</p></div>
+          <small>Temporal validity</small>
+        </article>
+        <article class="reveal">
+          <span>02</span>
+          <div><h3>Stock is not flow</h3><p>The current EV population snapshot is excluded from historical forecast features. Fleet records and registration transactions remain separate measures.</p></div>
+          <small>Feature availability</small>
+        </article>
+        <article class="reveal">
+          <span>03</span>
+          <div><h3>Baselines earn their place</h3><p>A prior-year seasonal model stays in every comparison. It exposed the statewide polynomial failure and kept the county result honest.</p></div>
+          <small>Evaluation rigor</small>
+        </article>
+        <article class="reveal">
+          <span>04</span>
+          <div><h3>Missing means unknown</h3><p>Zero range values are flagged, not interpreted as zero-mile capability. Threshold analysis only uses positive observed ranges and displays coverage.</p></div>
+          <small>Data provenance</small>
+        </article>
+      </div>
+    </section>
+
+    <section class="translation section-pad" aria-labelledby="translation-title">
+      <div class="translation-visual reveal" aria-hidden="true">
+        <div class="signal-core"><span>CF</span></div>
+        <i style="--x:14%;--y:18%;--d:.2s"></i><i style="--x:78%;--y:12%;--d:.5s"></i><i style="--x:90%;--y:65%;--d:.8s"></i><i style="--x:22%;--y:82%;--d:1.1s"></i><i style="--x:48%;--y:4%;--d:1.4s"></i><i style="--x:3%;--y:55%;--d:1.7s"></i>
+      </div>
+      <div class="translation-copy reveal">
+        <p class="section-index">05 / WHY THIS TRANSLATES</p>
+        <h2 id="translation-title">Built for the messy middle between a model and a decision.</h2>
+        <p>ChargeForward exercises the same core problems found in applied lifecycle AI: temporal behavior, heterogeneous segments, sparse attributes, competing objectives, uncertainty, and a need to explain recommendations to people who did not train the model.</p>
+        <div class="translation-tags"><span>Behavioral time series</span><span>Segmentation</span><span>Evaluation design</span><span>Reliable pipelines</span><span>Model serving</span><span>Stakeholder communication</span></div>
+      </div>
+    </section>
+
+    <section class="cta section-pad reveal">
+      <p>END OF CASE STUDY / START OF THE REPOSITORY</p>
+      <h2>Inspect every assumption.<br>Run every result.</h2>
+      <div class="hero-actions">
+        <a class="button button-primary" href="https://github.com/cr-shah/chargeforward-ev-analytics" target="_blank" rel="noreferrer">Explore the code <span aria-hidden="true">↗</span></a>
+        <a class="button button-ghost" href="https://github.com/cr-shah/chargeforward-ev-analytics/blob/main/docs/RESEARCH_RESULTS.md" target="_blank" rel="noreferrer">Read the research report <span aria-hidden="true">→</span></a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <a class="brand" href="./"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span><span>ChargeForward</span></a>
+    <p>Designed, engineered, and evaluated by <strong>Chaitanya Shah</strong>.</p>
+    <div><a href="https://github.com/cr-shah" target="_blank" rel="noreferrer">GitHub ↗</a><a href="https://github.com/cr-shah/chargeforward-ev-analytics" target="_blank" rel="noreferrer">Repository ↗</a></div>
+  </footer>
+
+  <script src="assets/site-data.js?v=1"></script>
+  <script src="assets/app.js?v=1"></script>
+</body>
+</html>

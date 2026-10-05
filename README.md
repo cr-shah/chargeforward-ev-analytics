@@ -1,10 +1,51 @@
-# ChargeForward: cloud EV data engineering and forecasting
+# ChargeForward: Washington EV intelligence
+
+<p align="center">
+  <a href="https://cr-shah.github.io/chargeforward-ev-analytics/">
+    <img src="assets/chargeforward-social.png" alt="ChargeForward — Evidence for the next electric mile" width="100%">
+  </a>
+</p>
+
+<p align="center">
+  <strong><a href="https://cr-shah.github.io/chargeforward-ev-analytics/">Launch the interactive case study →</a></strong>
+  &nbsp;&nbsp;·&nbsp;&nbsp;
+  <a href="docs/RESEARCH_RESULTS.md">Research report</a>
+  &nbsp;&nbsp;·&nbsp;&nbsp;
+  <a href="docs/PROJECT_ANALYTICS_SUMMARY.md">Project summary</a>
+</p>
+
+[![CI](https://github.com/cr-shah/chargeforward-ev-analytics/actions/workflows/ci.yml/badge.svg)](https://github.com/cr-shah/chargeforward-ev-analytics/actions/workflows/ci.yml)
+[![GitHub Pages](https://img.shields.io/badge/live-GitHub%20Pages-d5ff46?logo=github&logoColor=0b0c0b)](https://cr-shah.github.io/chargeforward-ev-analytics/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)](pyproject.toml)
 
 ChargeForward is an end-to-end data engineering and forecasting system for Washington electric-vehicle registrations. It moves public CSV sources through an optional **AWS S3 landing layer**, a task-oriented **Prefect workflow**, explicit data-quality checks, analytical **Snowflake** tables, the existing statistical/ML pipeline, and **FastAPI + Streamlit** serving. Every cloud integration has a local fallback, so the complete analytical workflow remains usable without AWS or Snowflake credentials.
 
 The system preserves the original EV stock-versus-registration analysis, range cleaning, linear and polynomial forecasts, 200-mile scenario, and three county segments. It also retains nine statistical/ML model configurations, Poisson and Negative Binomial count models, county ensemble ML, split-conformal intervals, feature ablation, six-window temporal robustness, Docker, and CI.
 
 > **Read the target carefully:** the registration dataset measures transactions, not new EV purchases. The project does not have a charger inventory, so it does not estimate charger supply or a 42% infrastructure gap.
+
+## Interactive case study
+
+The public site is a buildless HTML/CSS/JavaScript application published directly from the repository root. Its model leaderboard, 39-county explorer, prediction intervals, range-threshold scenario, and six-window stability chart are rendered from the same committed artifacts used in this README.
+
+```text
+docs/results/*.csv + evaluation.json
+                  ↓
+scripts/build_site_data.py
+                  ↓
+assets/site-data.js → index.html → GitHub Pages
+```
+
+Regenerate and verify the public experience after updating model results:
+
+```bash
+python scripts/build_site_data.py
+python scripts/generate_social_card.py
+python scripts/verify_site.py
+python -m http.server 8000
+```
+
+Then open `http://localhost:8000`. The website has no production JavaScript dependencies and works at the repository subpath used by GitHub Pages.
 
 ## Results at a glance
 
