@@ -78,6 +78,8 @@ data/live/
 
 `data/live/` is runtime state and stays out of Git. The compact browser artifact, `assets/live-data.js`, is versioned because GitHub Pages serves static files. A refresh does not rewrite that file when the upstream version is unchanged, so the scheduled workflow creates commits only for real source changes.
 
+If AFDC is temporarily unavailable or rate limited, the pipeline reuses the latest successful charging snapshot and labels its status `stale` with the upstream error. It never silently replaces valid station and port totals with zeros.
+
 Run a refresh locally:
 
 ```bash

@@ -158,6 +158,7 @@ nav a:hover, nav a:focus-visible { color: var(--white); }
 .live-freshness article > i { position: absolute; left: 20px; top: 25px; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); box-shadow: 0 0 0 4px rgba(255,255,255,.04); }
 .live-freshness article > i.available { background: var(--acid); box-shadow: 0 0 0 4px rgba(213,255,70,.09); }
 .live-freshness article > i.unavailable { background: var(--orange); }
+.live-freshness article > i.stale { background: #ffc857; box-shadow: 0 0 0 4px rgba(255,200,87,.1); }
 .live-freshness span, .live-version span { display: block; color: rgba(255,255,255,.36); font-family: var(--mono); font-size: 8px; letter-spacing: .1em; }
 .live-freshness strong { display: block; margin-top: 5px; overflow: hidden; color: rgba(255,255,255,.85); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 .live-freshness small { display: block; margin-top: 2px; color: rgba(255,255,255,.3); font-size: 9px; }
