@@ -4,6 +4,7 @@ __pycache__/
 .venv/
 data/raw/*
 data/processed/*
+data/live/
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 *.joblib
