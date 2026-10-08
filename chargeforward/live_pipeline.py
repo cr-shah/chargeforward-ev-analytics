@@ -56,13 +56,22 @@ def refresh_live_data(
             stations = attach_station_counties(afdc.charging_units(), zip_lookup)
             afdc_source = {**freshness.to_dict(), "status": "available"}
         except PublicDataError as exc:
-            stations = _empty_stations()
-            afdc_source = {
-                "source": "Alternative Fuels Data Center",
-                "source_url": "https://afdc.energy.gov/stations/",
-                "status": "unavailable",
-                "detail": str(exc),
-            }
+            cached = _cached_charging_inventory(settings.live_dir)
+            if cached is None:
+                stations = _empty_stations()
+                afdc_source = {
+                    "source": "Alternative Fuels Data Center",
+                    "source_url": "https://afdc.energy.gov/stations/",
+                    "status": "unavailable",
+                    "detail": str(exc),
+                }
+            else:
+                stations, afdc_source = cached
+                afdc_source = {
+                    **afdc_source,
+                    "status": "stale",
+                    "detail": f"Serving the latest successful snapshot after refresh failure: {exc}",
+                }
 
     metrics = county_live_metrics(population, registrations, stations)
     sources = {
@@ -218,3 +227,19 @@ def _empty_stations() -> pd.DataFrame:
     return pd.DataFrame(
         columns=["Station_ID", "Station_Name", "ZIP", "Latitude", "Longitude", "Network", "Ports", "DC_Fast_Ports", "County"]
     )
+
+
+def _cached_charging_inventory(live_dir: Path) -> tuple[pd.DataFrame, dict[str, Any]] | None:
+    candidates = [live_dir / "current", *sorted((live_dir / "snapshots").glob("*"), key=lambda path: path.stat().st_mtime, reverse=True)]
+    for directory in candidates:
+        station_path = directory / "charging_stations.csv"
+        source_path = directory / "source_status.json"
+        try:
+            stations = pd.read_csv(station_path)
+            sources = json.loads(source_path.read_text(encoding="utf-8"))
+        except (FileNotFoundError, OSError, pd.errors.ParserError, json.JSONDecodeError):
+            continue
+        source = sources.get("charging_inventory", {})
+        if not stations.empty and source.get("last_updated"):
+            return stations, source
+    return None

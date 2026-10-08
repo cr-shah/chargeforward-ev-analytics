@@ -8,6 +8,7 @@ from chargeforward.afdc import AfdcFreshness
 from chargeforward.config import LiveDataSettings
 from chargeforward.live_metrics import attach_station_counties, county_live_metrics
 from chargeforward.live_pipeline import refresh_live_data
+from chargeforward.http_client import PublicDataError
 from chargeforward.socrata import DatasetFreshness
 
 
@@ -78,6 +79,11 @@ class FakeAFDC:
         return self.stations.copy()
 
 
+class BrokenAFDC:
+    def freshness(self):
+        raise PublicDataError("rate limited")
+
+
 def test_refresh_writes_versioned_snapshot_and_stable_site_bundle(tmp_path):
     population, registrations, stations, lookup = sample_inputs()
     settings = LiveDataSettings(
@@ -103,3 +109,17 @@ def test_refresh_writes_versioned_snapshot_and_stable_site_bundle(tmp_path):
     assert '"public_ports":11' in bundle
     summary = json.loads((settings.live_dir / "current" / "live_summary.json").read_text())
     assert summary["state_totals"]["public_stations"] == 2
+
+
+def test_refresh_retains_last_successful_chargers_when_upstream_fails(tmp_path):
+    population, registrations, stations, lookup = sample_inputs()
+    settings = LiveDataSettings(live_dir=tmp_path / "live", site_bundle_path=tmp_path / "live-data.js")
+    socrata = FakeSocrata(population, registrations, lookup)
+    refresh_live_data(settings, socrata=socrata, afdc=FakeAFDC(stations))
+
+    result = refresh_live_data(settings, socrata=socrata, afdc=BrokenAFDC(), force_site_write=True)
+    sources = json.loads((settings.live_dir / "current" / "source_status.json").read_text())
+
+    assert result["state_totals"]["public_stations"] == 2
+    assert sources["charging_inventory"]["status"] == "stale"
+    assert "rate limited" in sources["charging_inventory"]["detail"]
