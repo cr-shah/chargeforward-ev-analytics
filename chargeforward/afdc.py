@@ -27,20 +27,20 @@ class AFDCClient:
     BASE_URL = "https://developer.nlr.gov/api/alt-fuel-stations/v1"
     CONNECTOR_COLUMNS = (
         "EV J1772 Connector Count",
-        "EV J1772 COMBO Connector Count",
+        "EV CCS Connector Count",
         "EV CHAdeMO Connector Count",
         "EV J3400 Connector Count",
         "EV NEMA 14-50 Connector Count",
         "EV NEMA 5-15 Connector Count",
         "EV NEMA 5-20 Connector Count",
-        "EV TESLA Connector Count",
+        "EV J3271 Connector Count",
         "EV Other Connector Count",
     )
     FAST_COLUMNS = (
-        "EV J1772 COMBO Connector Count",
+        "EV CCS Connector Count",
         "EV CHAdeMO Connector Count",
         "EV J3400 Connector Count",
-        "EV TESLA Connector Count",
+        "EV J3271 Connector Count",
     )
 
     def __init__(
@@ -87,14 +87,15 @@ class AFDCClient:
             raise PublicDataError("Unable to parse AFDC charging-unit CSV") from exc
         if frame.empty:
             return pd.DataFrame(columns=self._output_columns())
-        if "Station ID" not in frame or "ZIP" not in frame:
-            raise PublicDataError("AFDC charging-unit CSV is missing Station ID or ZIP")
+        station_id = "Station ID" if "Station ID" in frame else "ID"
+        if station_id not in frame or "ZIP" not in frame:
+            raise PublicDataError("AFDC charging-unit CSV is missing ID or ZIP")
 
         counts = self._numeric_counts(frame, self.CONNECTOR_COLUMNS)
         fast_counts = self._numeric_counts(frame, self.FAST_COLUMNS)
         output = pd.DataFrame(
             {
-                "Station_ID": frame["Station ID"].astype(str),
+                "Station_ID": frame[station_id].astype(str),
                 "Station_Name": self._column(frame, "Station Name"),
                 "ZIP": self._column(frame, "ZIP").astype(str).str.extract(r"(\d{5})", expand=False),
                 "Latitude": pd.to_numeric(self._column(frame, "Latitude"), errors="coerce"),

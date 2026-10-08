@@ -59,7 +59,7 @@ def county_live_metrics(
         "Public_Ports",
         "DC_Fast_Ports",
     ]
-    metrics[count_columns] = metrics[count_columns].fillna(0).astype(int)
+    metrics[count_columns] = metrics[count_columns].fillna(0).infer_objects(copy=False).astype(int)
     prior = metrics["Prior_EV_Transactions"].replace(0, np.nan)
     metrics["Registration_Growth_Pct"] = (
         (metrics["Recent_EV_Transactions"] - metrics["Prior_EV_Transactions"]) / prior * 100
