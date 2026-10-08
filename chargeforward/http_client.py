@@ -4,11 +4,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
+import ssl
 import time
 from typing import Any, Mapping, Protocol
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
+
+import certifi
 
 
 class PublicDataError(RuntimeError):
@@ -57,7 +60,8 @@ class UrllibTransport:
         last_error: Exception | None = None
         for attempt in range(self.retries + 1):
             try:
-                with urlopen(request, timeout=self.timeout_seconds) as response:
+                context = ssl.create_default_context(cafile=certifi.where())
+                with urlopen(request, timeout=self.timeout_seconds, context=context) as response:
                     return response.read()
             except HTTPError as exc:
                 last_error = exc
