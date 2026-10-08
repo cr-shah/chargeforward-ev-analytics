@@ -12,22 +12,25 @@
   <a href="docs/RESEARCH_RESULTS.md">Research report</a>
   &nbsp;&nbsp;·&nbsp;&nbsp;
   <a href="docs/PROJECT_ANALYTICS_SUMMARY.md">Project summary</a>
+  &nbsp;&nbsp;·&nbsp;&nbsp;
+  <a href="docs/LIVE_DATA.md">Live data design</a>
 </p>
 
 [![CI](https://github.com/cr-shah/chargeforward-ev-analytics/actions/workflows/ci.yml/badge.svg)](https://github.com/cr-shah/chargeforward-ev-analytics/actions/workflows/ci.yml)
+[![Live data](https://github.com/cr-shah/chargeforward-ev-analytics/actions/workflows/live-data-refresh.yml/badge.svg)](https://github.com/cr-shah/chargeforward-ev-analytics/actions/workflows/live-data-refresh.yml)
 [![GitHub Pages](https://img.shields.io/badge/live-GitHub%20Pages-d5ff46?logo=github&logoColor=0b0c0b)](https://cr-shah.github.io/chargeforward-ev-analytics/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)](pyproject.toml)
 
 By: Chaitanya Raj Shah
 
-ChargeForward is an end-to-end data engineering and forecasting system for Washington electric-vehicle registrations. It moves public CSV sources through an optional **AWS S3 landing layer**, a task-oriented **Prefect workflow**, explicit data-quality checks, analytical **Snowflake** tables, the existing statistical/ML pipeline, and **FastAPI + Streamlit** serving. Every cloud integration has a local fallback, so the complete analytical workflow remains usable without AWS or Snowflake credentials.
+ChargeForward is an end-to-end data, machine learning, and decision-intelligence system for Washington electric vehicles. It combines a reproducible historical model evaluation with **automated Socrata and AFDC ingestion**, versioned live snapshots, a transparent county opportunity score, optional **AWS S3 + Snowflake** infrastructure, **Prefect** orchestration, and **FastAPI + Streamlit + GitHub Pages** serving. Every cloud integration has a local fallback, so the complete analytical workflow remains usable without AWS or Snowflake credentials.
 
 The system preserves the original EV stock-versus-registration analysis, range cleaning, linear and polynomial forecasts, 200-mile scenario, and three county segments. It also retains nine statistical/ML model configurations, Poisson and Negative Binomial count models, county ensemble ML, split-conformal intervals, feature ablation, six-window temporal robustness, Docker, and CI.
 
 
 ## Interactive case study
 
-The public site is a buildless HTML/CSS/JavaScript application published directly from the repository root. Its model leaderboard, 39-county explorer, prediction intervals, range-threshold scenario, and six-window stability chart are rendered from the same committed artifacts used in this README.
+The public site is a buildless HTML/CSS/JavaScript application published directly from the repository root. It now combines a current public-data pulse, 3,000+ station map, explainable county opportunity ranking, model leaderboard, 39-county error explorer, prediction intervals, range-threshold scenario, and six-window stability chart.
 
 ```text
 docs/results/*.csv + evaluation.json
@@ -35,6 +38,10 @@ docs/results/*.csv + evaluation.json
 scripts/build_site_data.py
                   ↓
 assets/site-data.js → index.html → GitHub Pages
+
+WA Socrata + AFDC APIs
+          ↓ daily refresh
+assets/live-data.js → live map + county ranking
 ```
 
 Regenerate and verify the public experience after updating model results:
@@ -47,6 +54,20 @@ python -m http.server 8000
 ```
 
 Then open `http://localhost:8000`. The website has no production JavaScript dependencies and works at the repository subpath used by GitHub Pages.
+
+## Live market pulse
+
+The refresh layer queries the two Washington datasets through server-side Socrata aggregates and joins them to AFDC's operational public charging-unit inventory. It produces a deterministic source version, immutable local snapshots, a compact browser bundle, and four live API routes. A daily GitHub Action writes a new data commit only when the upstream version changes.
+
+| Current signal | Published result |
+|---|---:|
+| Registered Washington BEVs + PHEVs | **298,916** |
+| Electric registration transactions, latest 12 source months | **259,768** |
+| Operational public charging stations in AFDC inventory | **3,159** |
+| Public charging units/ports | **9,009** |
+| Counties scored | **39** |
+
+The **opportunity score** combines demand/activity (40%), EVs per public port (30%), registration growth (20%), and limited DC-fast availability (10%). It is an exploratory screen. Traffic, grid capacity, parcel feasibility, utilization, cost, and equity remain required for a real siting decision. Source dates and availability appear directly on the website; the pipeline retains and labels the last successful charger snapshot during a transient AFDC failure. See the [complete live-data specification](docs/LIVE_DATA.md).
 
 ## Results at a glance
 
@@ -81,6 +102,10 @@ flowchart LR
     J --> K[Forecast and evaluation tables]
     K --> L[FastAPI]
     K --> M[Streamlit and Folium]
+    N[WA Socrata + AFDC APIs] --> O[Daily live refresh]
+    O --> P[Versioned snapshots]
+    P --> L
+    P --> Q[Interactive GitHub Pages map]
 ```
 
 ### Data lifecycle
@@ -92,18 +117,19 @@ flowchart LR
 5. **Analytical storage:** county-month facts, past-only modeling features, ingestion metadata, and long-form forecasts are loaded into SQLite locally or Snowflake in cloud mode. Snowflake uses temporary staging tables and key-based `MERGE` statements.
 6. **Modeling:** the preserved chronological evaluation compares statewide trend/ensemble methods and county count/ensemble methods, then writes forecasts, diagnostics, uncertainty tables, and serialized model artifacts.
 7. **Serving:** FastAPI and Streamlit read local outputs by default. Setting `CHARGEFORWARD_DATA_BACKEND=snowflake` allows forecast and transaction reads from Snowflake while retaining local JSON/diagnostic artifacts.
+8. **Live refresh:** resilient source adapters query current Washington aggregates and public charging units, preserve the last successful charger inventory on transient failure, calculate transparent county signals, and publish only when the source version changes.
 
 ## Technology stack
 
 | Layer | Technologies |
 |---|---|
-| Ingestion and transformation | Python, pandas, NumPy, boto3, SHA-256 manifests |
+| Ingestion and transformation | Python, pandas, NumPy, Socrata SODA API, AFDC API, boto3, SHA-256 manifests |
 | Orchestration and observability | Prefect tasks/flows, retries, structured task logging |
 | Analytical warehouse | Snowflake, SQL staging tables, incremental `MERGE`; SQLite local fallback |
 | Statistics and ML | statsmodels, scikit-learn, joblib |
 | Infrastructure | Terraform, encrypted/versioned S3, least-privilege IAM policy and optional worker role |
-| Applications | FastAPI, Uvicorn, Streamlit, Plotly, Folium |
-| Delivery and quality | Docker, Docker Compose, pytest/unittest, GitHub Actions |
+| Applications | FastAPI, Uvicorn, Streamlit, Plotly, Folium, accessible vanilla JavaScript/SVG |
+| Delivery and quality | Docker, Docker Compose, pytest/unittest, GitHub Actions, GitHub Pages |
 
 ![Statewide monthly electric transactions and 12-month exploratory forecast](docs/figures/01-state-trend.png)
 
@@ -283,7 +309,7 @@ In a second terminal:
 uvicorn chargeforward.api:app --reload
 ```
 
-API routes: `/health`, `/counties`, `/forecast/{county}`, `/forecast/statewide`, `/evaluation`, and interactive docs at `/docs`. The dashboard offers county selection, forecasts, evaluation tables, a range-threshold slider, and a Folium segment map.
+API routes: `/health`, `/counties`, `/forecast/{county}`, `/forecast/statewide`, `/evaluation`, `/live/status`, `/live/counties`, `/live/counties/{county}`, `/live/stations`, and interactive docs at `/docs`. The dashboard offers county selection, forecasts, evaluation tables, a range-threshold slider, and a Folium segment map.
 
 The Prefect flow uses a local SQLite warehouse by default. A second run with identical source hashes returns `source_hashes_unchanged`; pass `--force` to rebuild intentionally. The original `python -m chargeforward.pipeline ...` entry point remains supported for a modeling-only local run.
 
@@ -346,7 +372,7 @@ docker build --target api -t chargeforward .
 docker run --rm -p 8000:8000 chargeforward
 ```
 
-Cloud tests use injected S3 clients and the SQLite warehouse; they do not require live credentials. Tests cover local/S3 ingestion, checksums, raw validation, duplicate/idempotent behavior, warehouse upserts, orchestration skip decisions, temporal leakage, chronological splits, uncertainty quantiles, and API readiness. GitHub Actions runs pytest, compilation checks, and an API Docker build on every push and pull request.
+Cloud and source-adapter tests use injected clients; they do not require live credentials. Tests cover local/S3 ingestion, Socrata aggregates, AFDC unit semantics, source failure fallback, checksums, raw validation, duplicate/idempotent behavior, warehouse upserts, orchestration skip decisions, temporal leakage, chronological splits, uncertainty quantiles, site bundle integrity, and API readiness. GitHub Actions runs pytest, compilation checks, site verification, and an API Docker build on every push and pull request. A separate scheduled workflow refreshes public data daily.
 
 ## Design decisions
 

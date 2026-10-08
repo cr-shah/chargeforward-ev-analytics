@@ -2,6 +2,7 @@
   "use strict";
 
   const data = window.CHARGEFORWARD_DATA;
+  const liveData = window.CHARGEFORWARD_LIVE;
   if (!data) {
     document.documentElement.classList.add("data-error");
     return;
@@ -366,6 +367,147 @@
     });
   }
 
+  function setupLiveExplorer() {
+    const section = $("#live");
+    if (!section) return;
+    if (!liveData) {
+      section.classList.add("live-unavailable");
+      $("#live-map-note").textContent = "The current-data bundle could not be loaded. Historical model evidence remains available below.";
+      return;
+    }
+
+    const totals = liveData.stateTotals;
+    $("#live-ev-total").textContent = formatNumber(totals.ev_stock);
+    $("#live-transaction-total").textContent = formatNumber(totals.recent_ev_transactions);
+    $("#live-station-total").textContent = formatNumber(totals.public_stations);
+    $("#live-port-total").textContent = formatNumber(totals.public_ports);
+    $("#live-version").textContent = liveData.sourceVersion.slice(0, 10);
+
+    const freshness = (source, fallback) => {
+      const raw = source?.rows_updated_at || source?.last_updated;
+      if (!raw) return fallback;
+      const date = new Date(raw);
+      return Number.isNaN(date.valueOf()) ? fallback : date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    };
+    $("#live-ev-date").textContent = freshness(liveData.sources.ev_population, "Source date unavailable");
+    $("#live-registration-date").textContent = `${liveData.latestRegistrationMonth || "Latest month unavailable"} data`;
+    $("#live-charger-date").textContent = freshness(liveData.sources.charging_inventory, "Source date unavailable");
+    $$('[data-live-status]').forEach((node) => {
+      const status = liveData.sources[node.dataset.liveStatus]?.status || "unknown";
+      node.classList.add(status);
+      node.title = status;
+    });
+
+    const svg = $("#live-map");
+    const tooltip = $("#live-map-tooltip");
+    const width = 760;
+    const height = 455;
+    const bounds = { west: -125.0, east: -116.75, south: 45.45, north: 49.15 };
+    const project = (longitude, latitude) => [
+      30 + ((longitude - bounds.west) / (bounds.east - bounds.west)) * (width - 60),
+      24 + ((bounds.north - latitude) / (bounds.north - bounds.south)) * (height - 48),
+    ];
+    const outlineCoordinates = [
+      [-124.72, 48.38], [-124.55, 47.10], [-124.08, 46.25], [-123.15, 46.18],
+      [-122.77, 45.56], [-116.98, 45.56], [-116.92, 49.00], [-123.25, 49.00],
+      [-123.13, 48.63], [-122.72, 48.42], [-122.57, 48.05], [-122.31, 47.72],
+      [-122.55, 47.32], [-123.05, 47.08], [-123.93, 47.34], [-124.38, 47.86],
+    ];
+    const outline = outlineCoordinates.map(([lon, lat], index) => {
+      const [x, y] = project(lon, lat);
+      return `${index ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(" ");
+    svg.append(createSvg("path", { d: `${outline} Z`, class: "wa-outline" }));
+
+    liveData.stations.forEach((station) => {
+      const longitude = Number(station.Longitude);
+      const latitude = Number(station.Latitude);
+      if (!Number.isFinite(longitude) || !Number.isFinite(latitude)) return;
+      const [cx, cy] = project(longitude, latitude);
+      const fast = Number(station.DC_Fast_Ports) > 0;
+      const circle = createSvg("circle", {
+        cx,
+        cy,
+        r: Math.min(5.5, 1.25 + Math.sqrt(Number(station.Ports) || 1) * .55),
+        fill: fast ? colors.acid : colors.blue,
+        opacity: fast ? .72 : .34,
+        class: "station-point",
+        tabindex: 0,
+        "data-county": station.County,
+        "aria-label": `${station.Station_Name}, ${station.County} County, ${station.Ports} ports`,
+      });
+      const show = (event) => {
+        const host = svg.getBoundingClientRect();
+        const pointX = event.clientX || host.left + (cx / width) * host.width;
+        const pointY = event.clientY || host.top + (cy / height) * host.height;
+        tooltip.innerHTML = `<strong>${station.Station_Name}</strong>${station.County} County · ${formatNumber(station.Ports)} port${Number(station.Ports) === 1 ? "" : "s"}<br>${fast ? `${formatNumber(station.DC_Fast_Ports)} DC-fast capable` : "No DC-fast connector recorded"}<br>${station.Network || "Network not listed"}`;
+        tooltip.style.display = "block";
+        tooltip.style.left = `${Math.min(Math.max(8, pointX - host.left + 10), host.width - 200)}px`;
+        tooltip.style.top = `${Math.min(Math.max(8, pointY - host.top - 78), host.height - 105)}px`;
+      };
+      circle.addEventListener("pointermove", show);
+      circle.addEventListener("focus", show);
+      circle.addEventListener("pointerleave", () => { tooltip.style.display = "none"; });
+      circle.addEventListener("blur", () => { tooltip.style.display = "none"; });
+      circle.addEventListener("click", () => selectCounty(station.County));
+      svg.append(circle);
+    });
+
+    let currentMetric = "Opportunity_Score";
+    let selectedCounty = null;
+    const metricMetaLive = {
+      Opportunity_Score: { suffix: " / 100", decimals: 1 },
+      EVs_Per_Port: { suffix: " EVs", decimals: 1 },
+      Registration_Growth_Pct: { suffix: "%", decimals: 1 },
+    };
+
+    function renderRankings() {
+      const meta = metricMetaLive[currentMetric];
+      const rows = [...liveData.counties]
+        .filter((row) => row[currentMetric] != null && Number.isFinite(Number(row[currentMetric])))
+        .sort((a, b) => Number(b[currentMetric]) - Number(a[currentMetric]));
+      const max = Math.max(...rows.map((row) => Number(row[currentMetric])), 1);
+      const list = $("#county-rank-list");
+      list.replaceChildren();
+      rows.forEach((row, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `rank-row${selectedCounty === row.County ? " active" : ""}`;
+        button.innerHTML = `<i>${String(index + 1).padStart(2, "0")}</i><span>${row.County}</span><div class="rank-bar"><b style="--rank-width:${Math.max(2, Number(row[currentMetric]) / max * 100)}%"></b></div><strong>${formatNumber(row[currentMetric], meta.decimals)}${meta.suffix}</strong>`;
+        button.addEventListener("click", () => selectCounty(row.County));
+        list.append(button);
+      });
+    }
+
+    function selectCounty(county) {
+      selectedCounty = county;
+      const row = liveData.counties.find((item) => item.County === county);
+      if (!row) return;
+      $$(".station-point", svg).forEach((point) => point.classList.toggle("dimmed", point.dataset.county !== county));
+      const visibleStations = liveData.stations.filter((station) => station.County === county).length;
+      $("#live-map-title").textContent = `${county} County · ${formatNumber(visibleStations)} mapped stations`;
+      $("#county-detail").innerHTML = `<h3>${county} County <span>#${row.Opportunity_Rank} signal</span></h3><div class="county-detail-grid"><div><span>EVS / PORT</span><strong>${row.EVs_Per_Port == null ? "—" : formatNumber(row.EVs_Per_Port, 1)}</strong></div><div><span>12M GROWTH</span><strong>${row.Registration_Growth_Pct == null ? "—" : `${formatNumber(row.Registration_Growth_Pct, 1)}%`}</strong></div><div><span>DC FAST SHARE</span><strong>${row.DC_Fast_Share_Pct == null ? "—" : `${formatNumber(row.DC_Fast_Share_Pct, 1)}%`}</strong></div></div><p>${formatNumber(row.EV_Stock)} registered EVs · ${formatNumber(row.Recent_EV_Transactions)} latest 12-month transactions · ${formatNumber(row.Public_Ports)} mapped public ports.</p>`;
+      renderRankings();
+    }
+
+    $$("[data-live-metric]").forEach((button) => button.addEventListener("click", () => {
+      currentMetric = button.dataset.liveMetric;
+      $$("[data-live-metric]").forEach((item) => item.classList.toggle("active", item === button));
+      renderRankings();
+    }));
+    $("#live-reset").addEventListener("click", () => {
+      selectedCounty = null;
+      $$(".station-point", svg).forEach((point) => point.classList.remove("dimmed"));
+      $("#live-map-title").textContent = `${formatNumber(liveData.stations.length)} mapped stations`;
+      $("#county-detail").innerHTML = "<p>Select a county to inspect its demand, supply, growth, and charging mix.</p>";
+      renderRankings();
+    });
+
+    $("#live-map-title").textContent = `${formatNumber(liveData.stations.length)} mapped stations`;
+    renderRankings();
+    selectCounty(liveData.counties[0]?.County);
+  }
+
   setupChrome();
   setupReveal();
   setupCounters();
@@ -373,6 +515,7 @@
   setupCountyExplorer();
   setupRange();
   setupTabs();
+  setupLiveExplorer();
   drawHeroChart();
   drawModelChart();
   setupResize();

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from html.parser import HTMLParser
+import json
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -56,6 +57,7 @@ def main() -> None:
 
     required = [
         "assets/site-data.js",
+        "assets/live-data.js",
         "assets/app.js",
         "assets/styles.css",
         "assets/favicon.svg",
@@ -66,12 +68,31 @@ def main() -> None:
 
     html = index.read_text(encoding="utf-8")
     site_data = (ROOT / "assets" / "site-data.js").read_text(encoding="utf-8")
+    live_text = (ROOT / "assets" / "live-data.js").read_text(encoding="utf-8")
     for claim in ["92.95", "10.3%", "75.9%"]:
         if claim not in html:
             errors.append(f"missing verified headline claim: {claim}")
     for marker in ['"vehicles":298916', '"transactions":576457', '"mlBetterCounties":34']:
         if marker not in site_data:
             errors.append(f"missing verified data marker: {marker}")
+
+    prefix = "window.CHARGEFORWARD_LIVE="
+    try:
+        live_payload = json.loads(live_text.split(prefix, 1)[1].rstrip().removesuffix(";"))
+    except (IndexError, json.JSONDecodeError) as exc:
+        errors.append(f"invalid live data bundle: {exc}")
+        live_payload = {}
+    if len(live_payload.get("counties", [])) != 39:
+        errors.append("live bundle must include all 39 Washington counties")
+    if live_payload.get("stateTotals", {}).get("public_ports", 0) <= 0:
+        errors.append("live bundle has no public charging ports")
+    if len(live_payload.get("stations", [])) <= 1000:
+        errors.append("live bundle has unexpectedly few mapped charging stations")
+    if not live_payload.get("sources", {}).get("ev_population", {}).get("rows_updated_at"):
+        errors.append("live bundle is missing EV population freshness")
+    for required_id in ["live", "live-map", "county-rank-list", "county-detail"]:
+        if required_id not in parser.ids:
+            errors.append(f"missing live explorer element: #{required_id}")
 
     if errors:
         raise SystemExit("Site verification failed:\n- " + "\n- ".join(errors))
