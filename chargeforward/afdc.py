@@ -25,13 +25,6 @@ class AFDCClient:
     """Download the operational public EV charging inventory for Washington."""
 
     BASE_URL = "https://developer.nlr.gov/api/alt-fuel-stations/v1"
-    FAST_COLUMNS = (
-        "EV CCS Connector Count",
-        "EV CHAdeMO Connector Count",
-        "EV J3400 Connector Count",
-        "EV J3271 Connector Count",
-    )
-
     def __init__(
         self,
         api_key: str,
@@ -80,7 +73,7 @@ class AFDCClient:
         if station_id not in frame or "ZIP" not in frame:
             raise PublicDataError("AFDC charging-unit CSV is missing ID or ZIP")
 
-        fast_counts = self._numeric_counts(frame, self.FAST_COLUMNS)
+        fast_units = self._fast_units(frame)
         output = pd.DataFrame(
             {
                 "Station_ID": frame[station_id].astype(str),
@@ -93,7 +86,7 @@ class AFDCClient:
                 # counts describe plugs supported by that unit and must not be
                 # summed as separate simultaneous ports.
                 "Ports": 1,
-                "DC_Fast_Ports": fast_counts.gt(0).astype(int),
+                "DC_Fast_Ports": fast_units,
             }
         ).dropna(subset=["ZIP"])
 
@@ -124,6 +117,16 @@ class AFDCClient:
         if not available:
             return pd.Series(0, index=frame.index, dtype="int64")
         return frame[available].apply(pd.to_numeric, errors="coerce").fillna(0).sum(axis=1).astype(int)
+
+    @classmethod
+    def _fast_units(cls, frame: pd.DataFrame) -> pd.Series:
+        dedicated_dc = cls._numeric_counts(frame, ("EV CCS Connector Count", "EV CHAdeMO Connector Count")).gt(0)
+        shared_standard_fast = pd.Series(False, index=frame.index)
+        for standard in ("J3400", "J3271"):
+            count = pd.to_numeric(cls._column(frame, f"EV {standard} Connector Count"), errors="coerce").fillna(0)
+            power = pd.to_numeric(cls._column(frame, f"EV {standard} Power Output (kW)"), errors="coerce").fillna(0)
+            shared_standard_fast |= count.gt(0) & power.ge(50)
+        return (dedicated_dc | shared_standard_fast).astype(int)
 
     @staticmethod
     def _output_columns() -> list[str]:
