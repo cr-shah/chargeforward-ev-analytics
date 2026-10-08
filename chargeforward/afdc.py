@@ -25,17 +25,6 @@ class AFDCClient:
     """Download the operational public EV charging inventory for Washington."""
 
     BASE_URL = "https://developer.nlr.gov/api/alt-fuel-stations/v1"
-    CONNECTOR_COLUMNS = (
-        "EV J1772 Connector Count",
-        "EV CCS Connector Count",
-        "EV CHAdeMO Connector Count",
-        "EV J3400 Connector Count",
-        "EV NEMA 14-50 Connector Count",
-        "EV NEMA 5-15 Connector Count",
-        "EV NEMA 5-20 Connector Count",
-        "EV J3271 Connector Count",
-        "EV Other Connector Count",
-    )
     FAST_COLUMNS = (
         "EV CCS Connector Count",
         "EV CHAdeMO Connector Count",
@@ -91,7 +80,6 @@ class AFDCClient:
         if station_id not in frame or "ZIP" not in frame:
             raise PublicDataError("AFDC charging-unit CSV is missing ID or ZIP")
 
-        counts = self._numeric_counts(frame, self.CONNECTOR_COLUMNS)
         fast_counts = self._numeric_counts(frame, self.FAST_COLUMNS)
         output = pd.DataFrame(
             {
@@ -101,8 +89,11 @@ class AFDCClient:
                 "Latitude": pd.to_numeric(self._column(frame, "Latitude"), errors="coerce"),
                 "Longitude": pd.to_numeric(self._column(frame, "Longitude"), errors="coerce"),
                 "Network": self._column(frame, "EV Network"),
-                "Ports": counts.where(counts.gt(0), 1),
-                "DC_Fast_Ports": fast_counts,
+                # AFDC's download is one row per charging unit/port. Connector
+                # counts describe plugs supported by that unit and must not be
+                # summed as separate simultaneous ports.
+                "Ports": 1,
+                "DC_Fast_Ports": fast_counts.gt(0).astype(int),
             }
         ).dropna(subset=["ZIP"])
 
