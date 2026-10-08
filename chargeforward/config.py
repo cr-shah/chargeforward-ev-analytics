@@ -64,3 +64,30 @@ class PipelineSettings:
             local_warehouse_path=Path(os.getenv("CHARGEFORWARD_LOCAL_WAREHOUSE") or str(output / "chargeforward.db")),
             warehouse_backend=(os.getenv("CHARGEFORWARD_WAREHOUSE") or "local").lower(),
         )
+
+
+@dataclass(frozen=True)
+class LiveDataSettings:
+    """Configuration for public API refreshes and snapshot storage."""
+
+    socrata_domain: str = "data.wa.gov"
+    ev_population_dataset: str = "f6w7-q2d2"
+    registrations_dataset: str = "hmzg-s6q4"
+    socrata_app_token: str | None = None
+    afdc_api_key: str | None = None
+    live_dir: Path = Path("data/live")
+    site_bundle_path: Path = Path("assets/live-data.js")
+    request_timeout_seconds: float = 45.0
+
+    @classmethod
+    def from_env(cls) -> "LiveDataSettings":
+        return cls(
+            socrata_domain=os.getenv("CHARGEFORWARD_SOCRATA_DOMAIN") or "data.wa.gov",
+            ev_population_dataset=os.getenv("CHARGEFORWARD_EV_DATASET") or "f6w7-q2d2",
+            registrations_dataset=os.getenv("CHARGEFORWARD_REGISTRATIONS_DATASET") or "hmzg-s6q4",
+            socrata_app_token=_optional("SOCRATA_APP_TOKEN"),
+            afdc_api_key=_optional("NLR_API_KEY") or _optional("NREL_API_KEY"),
+            live_dir=Path(os.getenv("CHARGEFORWARD_LIVE_DIR") or "data/live"),
+            site_bundle_path=Path(os.getenv("CHARGEFORWARD_LIVE_SITE_BUNDLE") or "assets/live-data.js"),
+            request_timeout_seconds=float(os.getenv("CHARGEFORWARD_HTTP_TIMEOUT") or "45"),
+        )
