@@ -1,0 +1,52 @@
+name: Refresh live public data
+
+on:
+  schedule:
+    - cron: "17 13 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: live-data-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install project
+        run: pip install -e '.[test]'
+
+      - name: Refresh official public sources
+        env:
+          NLR_API_KEY: ${{ secrets.NLR_API_KEY || 'DEMO_KEY' }}
+          SOCRATA_APP_TOKEN: ${{ secrets.SOCRATA_APP_TOKEN }}
+        run: python scripts/refresh_live_data.py
+
+      - name: Validate generated bundle
+        run: |
+          test -s assets/live-data.js
+          python -m pytest tests/test_live_sources.py tests/test_live_pipeline.py -q
+
+      - name: Commit changed source version
+        run: |
+          if git diff --quiet -- assets/live-data.js; then
+            echo "Upstream source versions are unchanged."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/live-data.js
+          git commit -m "data: refresh public EV and charging snapshot"
+          git push
