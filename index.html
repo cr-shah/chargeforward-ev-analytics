@@ -44,6 +44,7 @@
       <span></span><span></span><span></span><span class="sr-only">Open navigation</span>
     </button>
     <nav id="site-nav" aria-label="Main navigation">
+      <a href="#live">Live pulse</a>
       <a href="#analysis">Analysis</a>
       <a href="#findings">Findings</a>
       <a href="#architecture">Architecture</a>
@@ -105,6 +106,68 @@
         <div class="connector" aria-hidden="true"><i></i><i></i><i></i><b>→</b></div>
         <div><span>OUTPUT</span><strong>468</strong><p>county-month final evaluation examples</p></div>
       </div>
+    </section>
+
+    <section class="live-section section-pad" id="live" aria-labelledby="live-title">
+      <div class="section-heading reveal">
+        <div>
+          <p class="section-index">01 / LIVE PUBLIC DATA</p>
+          <h2 id="live-title">The market moved.<br><span>The analysis moved with it.</span></h2>
+        </div>
+        <p>Official Washington vehicle records and the federal public charging inventory refresh through an automated pipeline. Explore current demand, supply, and momentum without hiding the assumptions behind the score.</p>
+      </div>
+
+      <div class="live-freshness reveal" aria-label="Live data source freshness">
+        <article><i data-live-status="ev_population"></i><span>EV POPULATION</span><strong id="live-ev-date">Loading…</strong><small>Washington DOL · monthly</small></article>
+        <article><i data-live-status="registrations"></i><span>REGISTRATION ACTIVITY</span><strong id="live-registration-date">Loading…</strong><small>Washington DOL · monthly</small></article>
+        <article><i data-live-status="charging_inventory"></i><span>CHARGING INVENTORY</span><strong id="live-charger-date">Loading…</strong><small>AFDC · operational inventory</small></article>
+        <div class="live-version"><span>SNAPSHOT</span><code id="live-version">—</code></div>
+      </div>
+
+      <div class="live-kpis reveal" aria-label="Current Washington electric vehicle indicators">
+        <article><span>CURRENT EV STOCK</span><strong id="live-ev-total">—</strong><small>registered BEVs + PHEVs</small></article>
+        <article><span>LATEST 12 MONTHS</span><strong id="live-transaction-total">—</strong><small>electric registration transactions</small></article>
+        <article><span>PUBLIC STATIONS</span><strong id="live-station-total">—</strong><small>operational federal inventory</small></article>
+        <article><span>PUBLIC PORTS</span><strong id="live-port-total">—</strong><small>simultaneous charging units</small></article>
+      </div>
+
+      <div class="live-console reveal">
+        <div class="live-map-panel">
+          <div class="live-panel-head">
+            <div><span>WASHINGTON / PUBLIC CHARGING</span><strong id="live-map-title">All mapped stations</strong></div>
+            <button id="live-reset" type="button">RESET VIEW</button>
+          </div>
+          <div class="wa-map-wrap">
+            <svg id="live-map" viewBox="0 0 760 455" role="img" aria-label="Public EV charging stations in Washington"></svg>
+            <div class="map-tooltip" id="live-map-tooltip" role="status" aria-live="polite"></div>
+            <div class="map-key"><span><i class="station-dot fast"></i> DC fast capable</span><span><i class="station-dot standard"></i> Other public port</span></div>
+          </div>
+          <p class="live-map-note" id="live-map-note">Inventory status reflects the source record. It does not show whether a port is occupied or working at this moment.</p>
+        </div>
+
+        <aside class="opportunity-panel" aria-labelledby="opportunity-title">
+          <div class="live-panel-head">
+            <div><span>EXPLORATORY PRIORITY</span><strong id="opportunity-title">County opportunity signal</strong></div>
+          </div>
+          <div class="live-metric-tabs" role="group" aria-label="Rank counties by metric">
+            <button class="active" type="button" data-live-metric="Opportunity_Score">Score</button>
+            <button type="button" data-live-metric="EVs_Per_Port">EVs / port</button>
+            <button type="button" data-live-metric="Registration_Growth_Pct">Growth</button>
+          </div>
+          <div class="county-rank-list" id="county-rank-list"></div>
+          <div class="county-detail" id="county-detail" aria-live="polite"></div>
+        </aside>
+      </div>
+
+      <div class="score-method reveal">
+        <span>HOW THE SCORE WORKS</span>
+        <div><b>40%</b><p>EV demand + registration activity</p></div>
+        <div><b>30%</b><p>registered EVs per public port</p></div>
+        <div><b>20%</b><p>12-month registration growth</p></div>
+        <div><b>10%</b><p>limited DC-fast availability</p></div>
+        <p class="method-caveat"><strong>Planning screen, not a siting verdict.</strong> Candidate locations still require traffic, grid capacity, parcel, utilization, cost, and equity analysis. Stations use a majority-county ZIP approximation because ZIP codes can cross county boundaries.</p>
+      </div>
+      <noscript><p class="live-error">Enable JavaScript to explore the current public-data snapshot.</p></noscript>
     </section>
 
     <section class="lab section-pad" id="analysis" aria-labelledby="lab-title">
@@ -326,6 +389,7 @@
   </footer>
 
   <script src="assets/site-data.js?v=1"></script>
-  <script src="assets/app.js?v=1"></script>
+  <script src="assets/live-data.js?v=1"></script>
+  <script src="assets/app.js?v=2"></script>
 </body>
 </html>
