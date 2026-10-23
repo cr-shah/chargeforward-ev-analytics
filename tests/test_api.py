@@ -10,6 +10,29 @@ from chargeforward import api
 
 
 class ApiHealthTests(unittest.TestCase):
+    def test_security_headers_cover_success_and_error_responses(self):
+        client = TestClient(api.app)
+        required = {
+            "x-content-type-options": "nosniff",
+            "x-frame-options": "DENY",
+            "referrer-policy": "no-referrer",
+            "permissions-policy": "camera=(), microphone=(), geolocation=()",
+            "content-security-policy": "default-src 'none'; frame-ancestors 'none'; base-uri 'none'",
+            "cross-origin-resource-policy": "same-site",
+        }
+
+        for path in ("/health", "/does-not-exist"):
+            response = client.get(path)
+            for name, expected in required.items():
+                self.assertEqual(response.headers.get(name), expected)
+
+    def test_interactive_docs_are_disabled_by_default(self):
+        client = TestClient(api.app)
+        self.assertIsNone(api.app.docs_url)
+        self.assertIsNone(api.app.redoc_url)
+        self.assertIsNone(api.app.openapi_url)
+        self.assertEqual(client.get("/docs").status_code, 404)
+
     def test_health_requires_all_served_outputs(self):
         with tempfile.TemporaryDirectory() as directory, patch.object(api, "OUTPUT", Path(directory)):
             self.assertFalse(api.health()["ready"])

@@ -3,13 +3,31 @@ from pathlib import Path
 import os
 import json
 import pandas as pd
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from .data_access import get_result_store
+
+
+def _env_enabled(name: str) -> bool:
+    return (os.getenv(name) or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+DOCS_ENABLED = _env_enabled("CHARGEFORWARD_ENABLE_API_DOCS")
+SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "no-referrer",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+    "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'; base-uri 'none'",
+    "Cross-Origin-Resource-Policy": "same-site",
+}
 
 app = FastAPI(
     title="ChargeForward API",
     version="0.2.0",
     description="Evaluated Washington EV forecasts and refreshable charging opportunity signals.",
+    docs_url="/docs" if DOCS_ENABLED else None,
+    redoc_url="/redoc" if DOCS_ENABLED else None,
+    openapi_url="/openapi.json" if DOCS_ENABLED else None,
 )
 OUTPUT = Path(os.getenv("CHARGEFORWARD_OUTPUT") or "data/processed")
 LIVE_OUTPUT = Path(os.getenv("CHARGEFORWARD_LIVE_DIR") or "data/live") / "current"
@@ -19,6 +37,13 @@ REQUIRED_OUTPUTS = (
     "county_segments.csv",
     "evaluation.json",
 )
+
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers.update(SECURITY_HEADERS)
+    return response
 
 
 def _read(name: str) -> pd.DataFrame:
