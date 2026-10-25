@@ -122,44 +122,73 @@
     counters.forEach((counter) => observer.observe(counter));
   }
 
-  function drawHeroChart() {
-    const svg = $("#hero-chart");
+  function sourceDate(source) {
+    const raw = source?.rows_updated_at || source?.last_updated;
+    if (!raw) return "date unavailable";
+    const date = new Date(raw);
+    return Number.isNaN(date.valueOf())
+      ? "date unavailable"
+      : date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  }
+
+  function setupHeroLive() {
+    if (!liveData) {
+      $("#hero-live-status").textContent = "Current source bundle unavailable";
+      return;
+    }
+    const totals = liveData.stateTotals;
+    const topCounty = [...liveData.counties].sort((a, b) => a.Opportunity_Rank - b.Opportunity_Rank)[0];
+    $("#hero-live-status").textContent = `EV census ${sourceDate(liveData.sources.ev_population)} · chargers ${sourceDate(liveData.sources.charging_inventory)}`;
+    $("#hero-ev-stock").textContent = formatNumber(totals.ev_stock);
+    $("#hero-public-ports").textContent = formatNumber(totals.public_ports);
+    $("#hero-top-county").textContent = topCounty ? `${topCounty.County} · ${formatNumber(topCounty.Opportunity_Score, 1)}` : "—";
+    $("#hero-stat-evs").dataset.count = totals.ev_stock;
+    $("#hero-stat-stations").dataset.count = totals.public_stations;
+    $("#hero-stat-counties").dataset.count = totals.counties_scored;
+  }
+
+  function drawHeroNetwork() {
+    const svg = $("#hero-network");
+    if (!svg || !liveData) return;
     const width = 680;
     const height = 330;
-    const pad = { top: 38, right: 28, bottom: 45, left: 45 };
     setSvg(svg, width, height);
-    const rows = data.temporalRobustness;
-    const periods = [...new Set(rows.map((row) => row.evaluation_end))];
-    const max = Math.max(...rows.map((row) => row.rmse)) * 1.13;
-    const x = (index) => pad.left + index * ((width - pad.left - pad.right) / (periods.length - 1));
-    const y = (value) => height - pad.bottom - (value / max) * (height - pad.top - pad.bottom);
-
-    [0, .25, .5, .75, 1].forEach((fraction) => {
-      const yy = y(max * fraction);
-      svg.append(createSvg("line", { x1: pad.left, y1: yy, x2: width - pad.right, y2: yy, stroke: colors.grid }));
-      svg.append(createSvg("text", { x: pad.left - 10, y: yy + 3, "text-anchor": "end", fill: colors.muted, "font-size": 8, "font-family": "DM Mono, monospace" }, Math.round(max * fraction)));
-    });
-    periods.forEach((period, index) => {
-      svg.append(createSvg("text", { x: x(index), y: height - 15, "text-anchor": "middle", fill: colors.muted, "font-size": 8, "font-family": "DM Mono, monospace" }, `${period.slice(2, 4)}/${String(Number(period.slice(2, 4)) + 1).padStart(2, "0")}`));
-    });
-
-    const series = [
-      ["lag_12_baseline", colors.violet, .5],
-      ["random_forest", colors.orange, .7],
-      ["poisson_glm", colors.acid, 1],
+    svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+    const bounds = { west: -125, east: -116.75, south: 45.45, north: 49.15 };
+    const project = (longitude, latitude) => [
+      42 + ((longitude - bounds.west) / (bounds.east - bounds.west)) * (width - 84),
+      28 + ((bounds.north - latitude) / (bounds.north - bounds.south)) * (height - 56),
     ];
-    series.forEach(([model, color, opacity]) => {
-      const values = periods.map((period) => rows.find((row) => row.model === model && row.evaluation_end === period));
-      const points = values.map((row, index) => [x(index), y(row.rmse)]);
-      svg.append(createSvg("path", { d: pathFrom(points), fill: "none", stroke: color, "stroke-width": model === "poisson_glm" ? 3 : 1.5, opacity }));
-      points.forEach(([cx, cy], index) => {
-        svg.append(createSvg("circle", { cx, cy, r: model === "poisson_glm" ? 4 : 2.5, fill: color, opacity }));
-        if (model === "poisson_glm" && index === points.length - 1) {
-          svg.append(createSvg("circle", { cx, cy, r: 10, fill: "none", stroke: color, opacity: .25 }));
-        }
-      });
+    const outlineCoordinates = [
+      [-124.72, 48.38], [-124.55, 47.1], [-124.08, 46.25], [-123.15, 46.18],
+      [-122.77, 45.56], [-116.98, 45.56], [-116.92, 49], [-123.25, 49],
+      [-123.13, 48.63], [-122.72, 48.42], [-122.57, 48.05], [-122.31, 47.72],
+      [-122.55, 47.32], [-123.05, 47.08], [-123.93, 47.34], [-124.38, 47.86],
+    ];
+    const outline = outlineCoordinates.map(([longitude, latitude], index) => {
+      const [x, y] = project(longitude, latitude);
+      return `${index ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(" ");
+    svg.append(createSvg("path", { d: `${outline} Z`, class: "hero-wa-outline" }));
+
+    const regular = liveData.stations.filter((station) => Number(station.DC_Fast_Ports) === 0);
+    const fast = liveData.stations.filter((station) => Number(station.DC_Fast_Ports) > 0);
+    const step = Math.max(1, Math.ceil(regular.length / 440));
+    const visible = regular.filter((_, index) => index % step === 0).concat(fast);
+    visible.forEach((station) => {
+      const longitude = Number(station.Longitude);
+      const latitude = Number(station.Latitude);
+      if (!Number.isFinite(longitude) || !Number.isFinite(latitude)) return;
+      const [cx, cy] = project(longitude, latitude);
+      const isFast = Number(station.DC_Fast_Ports) > 0;
+      svg.append(createSvg("circle", {
+        cx,
+        cy,
+        r: isFast ? 2.3 : 1.25,
+        class: isFast ? "hero-station fast" : "hero-station",
+      }));
     });
-    svg.append(createSvg("text", { x: pad.left, y: 16, fill: colors.muted, "font-size": 8, "font-family": "DM Mono, monospace", "letter-spacing": 1 }, "RMSE / LOWER IS BETTER"));
+    svg.append(createSvg("text", { x: 52, y: 52, class: "hero-map-label" }, `${formatNumber(liveData.stateTotals.public_stations)} PUBLIC STATIONS`));
   }
 
   function drawModelChart(metric = "rmse") {
@@ -358,7 +387,7 @@
     addEventListener("resize", () => {
       clearTimeout(timeout);
       timeout = setTimeout(() => {
-        drawHeroChart();
+        drawHeroNetwork();
         const activeMetric = $(".metric-toggle.active")?.dataset.metric || "rmse";
         drawModelChart(activeMetric);
         if (!$("#panel-county").hidden) drawCounty($("#county-select").value);
@@ -510,13 +539,14 @@
 
   setupChrome();
   setupReveal();
+  setupHeroLive();
   setupCounters();
   setupModelControls();
   setupCountyExplorer();
   setupRange();
   setupTabs();
   setupLiveExplorer();
-  drawHeroChart();
+  drawHeroNetwork();
   drawModelChart();
   setupResize();
 })();

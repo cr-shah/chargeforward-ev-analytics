@@ -59,38 +59,43 @@
       <div class="orb orb-a" aria-hidden="true"></div>
       <div class="orb orb-b" aria-hidden="true"></div>
       <div class="hero-copy reveal">
-        <p class="eyebrow"><span class="status-dot"></span> Washington EV intelligence / built end to end</p>
-        <h1 id="hero-title">Evidence for the next <em>electric mile.</em></h1>
-        <p class="hero-lede">A production-minded data and ML system that turns public vehicle records into county-level forecasts, calibrated uncertainty, and honest planning signals.</p>
+        <p class="eyebrow"><span class="status-dot"></span> Washington EV intelligence / current public data</p>
+        <h1 id="hero-title">Where should Washington <em>charge next?</em></h1>
+        <p class="hero-lede">A decision intelligence system that combines current EV registrations, charging supply, county growth, and tested forecasts to surface the places infrastructure may be falling behind.</p>
         <aside class="why-matters" aria-label="Why this matters">
           <span>WHY THIS MATTERS / 2035</span>
-          <p><strong>Where should Washington’s next charging investment go?</strong> The county-level signals are less obvious than the statewide curve.</p>
+          <p><strong>Net zero ambition needs local infrastructure.</strong> The best place for Washington’s next charging investment is not always the county with the most EVs.</p>
           <small>Washington requires 100% of new passenger vehicles sold from 2035 onward to use zero-emission technology. Registration activity is one planning input; charger inventory, traffic, grid capacity, and equity data would complete a siting decision. <a href="https://www.ecology.wa.gov/air-climate/reducing-greenhouse-gas-emissions/vehicle-emissions-standards" target="_blank" rel="noreferrer">Policy source ↗</a></small>
         </aside>
         <div class="hero-actions">
-          <a class="button button-primary" href="#analysis">Explore the analysis <span aria-hidden="true">↓</span></a>
-          <a class="button button-ghost" href="https://github.com/cr-shah/chargeforward-ev-analytics" target="_blank" rel="noreferrer">View source <span aria-hidden="true">↗</span></a>
+          <a class="button button-primary" href="#live">Explore live network <span aria-hidden="true">↓</span></a>
+          <a class="button button-ghost" href="#analysis">Inspect model evidence <span aria-hidden="true">→</span></a>
         </div>
         <p class="hero-note"><strong>Built independently.</strong> Data ingestion → validation → modeling → API → dashboard → cloud infrastructure.</p>
       </div>
 
-      <div class="hero-instrument reveal" aria-label="Animated model signal showing six historical evaluation windows">
+      <div class="hero-instrument hero-network-card reveal" aria-label="Current Washington electric vehicle and public charging network signal">
         <div class="instrument-topline">
-          <span>MODEL SIGNAL / 06 WINDOWS</span>
-          <span class="live-chip"><i></i> EVALUATED</span>
+          <span>NETWORK SIGNAL / WASHINGTON</span>
+          <span class="live-chip"><i></i> CURRENT DATA</span>
         </div>
-        <svg id="hero-chart" role="img" aria-label="Poisson, Random Forest, and seasonal baseline RMSE across six historical periods"></svg>
+        <div class="hero-network-meta">
+          <p>Official source pulse</p>
+          <strong id="hero-live-status">Loading source freshness…</strong>
+        </div>
+        <svg id="hero-network" role="img" aria-label="Map of public charging stations across Washington"></svg>
+        <div class="network-legend" aria-hidden="true"><span><i></i> Public station</span><span><i></i> DC fast capable</span></div>
         <div class="instrument-readout">
-          <div><span>SELECTED MODEL</span><strong>Poisson GLM</strong></div>
-          <div><span>FINAL RMSE</span><strong>92.95</strong></div>
-          <div><span>FINAL R²</span><strong>0.9546</strong></div>
+          <div><span>REGISTERED EV STOCK</span><strong id="hero-ev-stock">—</strong></div>
+          <div><span>PUBLIC PORTS</span><strong id="hero-public-ports">—</strong></div>
+          <div><span>TOP OPPORTUNITY</span><strong id="hero-top-county">—</strong></div>
         </div>
       </div>
 
       <div class="hero-stats reveal" aria-label="Project statistics">
-        <article><span class="stat-number" data-count="298916">0</span><small>unique WA EVs</small></article>
-        <article><span class="stat-number" data-count="576457">0</span><small>electric transactions</small></article>
-        <article><span class="stat-number" data-count="39">0</span><small>counties modeled</small></article>
+        <article><span class="stat-number" id="hero-stat-evs" data-count="299353">0</span><small>current WA EV stock</small></article>
+        <article><span class="stat-number" id="hero-stat-stations" data-count="3218">0</span><small>mapped public stations</small></article>
+        <article><span class="stat-number" id="hero-stat-counties" data-count="39">0</span><small>counties scored</small></article>
         <article><span class="stat-number" data-count="10.3" data-decimals="1" data-suffix="%">0</span><small>lower RMSE vs baseline</small></article>
       </div>
     </section>

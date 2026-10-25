@@ -90,9 +90,21 @@ def main() -> None:
         errors.append("live bundle has unexpectedly few mapped charging stations")
     if not live_payload.get("sources", {}).get("ev_population", {}).get("rows_updated_at"):
         errors.append("live bundle is missing EV population freshness")
-    for required_id in ["live", "live-map", "county-rank-list", "county-detail"]:
+    for required_id in [
+        "live",
+        "live-map",
+        "county-rank-list",
+        "county-detail",
+        "hero-live-status",
+        "hero-network",
+        "hero-ev-stock",
+        "hero-public-ports",
+        "hero-top-county",
+    ]:
         if required_id not in parser.ids:
             errors.append(f"missing live explorer element: #{required_id}")
+    if 'class="button button-primary" href="#live">Explore live network' not in html:
+        errors.append("hero primary action must open the live explorer")
 
     if errors:
         raise SystemExit("Site verification failed:\n- " + "\n- ".join(errors))
