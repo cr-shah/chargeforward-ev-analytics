@@ -100,6 +100,10 @@ def main() -> None:
         "hero-ev-stock",
         "hero-public-ports",
         "hero-top-county",
+        "live-county-select",
+        "rank-toggle",
+        "county-signal-score",
+        "ranking-caption",
     ]:
         if required_id not in parser.ids:
             errors.append(f"missing live explorer element: #{required_id}")

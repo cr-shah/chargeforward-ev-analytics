@@ -193,9 +193,10 @@ nav a:hover, nav a:focus-visible { color: var(--white); }
 #live-map { height: 515px; }
 .wa-outline { fill: rgba(255,255,255,.025); stroke: rgba(255,255,255,.19); stroke-width: 1.4; vector-effect: non-scaling-stroke; }
 .wa-water { fill: rgba(117,217,255,.05); }
-.station-point { cursor: pointer; transition: opacity .18s, r .18s; }
+.station-point { cursor: pointer; transition: opacity .18s, r .18s, stroke-width .18s; }
 .station-point:hover, .station-point:focus { opacity: 1; stroke: var(--white); stroke-width: 1.2; outline: none; }
 .station-point.dimmed { opacity: .07; }
+.station-point.selected { opacity: 1; stroke: var(--acid); stroke-width: 2.4; filter: drop-shadow(0 0 4px rgba(213,255,70,.65)); }
 .map-tooltip { position: absolute; z-index: 2; display: none; width: 190px; padding: 11px 13px; pointer-events: none; color: var(--ink); background: var(--white); box-shadow: 0 16px 35px rgba(0,0,0,.35); font-size: 10px; line-height: 1.45; }
 .map-tooltip strong { display: block; margin-bottom: 3px; font-size: 11px; }
 .map-key { position: absolute; left: 18px; bottom: 14px; display: flex; flex-wrap: wrap; gap: 13px; padding: 7px 9px; color: rgba(255,255,255,.48); background: rgba(11,12,11,.76); font-family: var(--mono); font-size: 7px; }
@@ -204,11 +205,20 @@ nav a:hover, nav a:focus-visible { color: var(--white); }
 .station-dot.standard { background: var(--blue); }
 .live-map-note { margin: 0; padding: 15px 20px; border-top: 1px solid var(--line-dark); color: rgba(255,255,255,.38); font-size: 10px; }
 .opportunity-panel { min-width: 0; }
+.county-command-bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: end; padding: 13px 15px; border-bottom: 1px solid var(--line-dark); background: rgba(255,255,255,.018); }
+.county-command-bar label > span { display: block; margin-bottom: 6px; color: rgba(255,255,255,.34); font-family: var(--mono); font-size: 7px; letter-spacing: .1em; }
+.county-command-bar select { width: 100%; min-height: 36px; padding: 0 30px 0 10px; border: 1px solid rgba(255,255,255,.16); border-radius: 0; color: var(--white); background: #1b1e1b; font: 600 11px var(--sans); cursor: pointer; }
+.county-command-bar select:focus-visible { border-color: var(--acid); outline: 2px solid rgba(213,255,70,.16); outline-offset: 2px; }
+.county-command-bar button { min-height: 36px; padding: 0 11px; border: 1px solid rgba(255,255,255,.16); color: rgba(255,255,255,.55); background: transparent; font-family: var(--mono); font-size: 7px; letter-spacing: .08em; cursor: pointer; }
+.county-command-bar button:hover, .county-command-bar button:focus-visible { border-color: var(--acid); color: var(--acid); }
 .live-metric-tabs { display: grid; grid-template-columns: repeat(3, 1fr); border-bottom: 1px solid var(--line-dark); }
 .live-metric-tabs button { min-height: 45px; padding: 7px; border: 0; border-right: 1px solid var(--line-dark); color: rgba(255,255,255,.4); background: transparent; font-family: var(--mono); font-size: 8px; cursor: pointer; }
 .live-metric-tabs button:last-child { border: 0; }
 .live-metric-tabs button.active { color: var(--ink); background: var(--acid); }
-.county-rank-list { max-height: 365px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.2) transparent; }
+.ranking-head { min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 15px; border-top: 1px solid var(--line-dark); border-bottom: 1px solid var(--line-dark); }
+.ranking-head span, .ranking-head small { color: rgba(255,255,255,.42); font-family: var(--mono); font-size: 7px; letter-spacing: .08em; }
+.ranking-head small { color: rgba(255,255,255,.23); text-align: right; }
+.county-rank-list { max-height: 310px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.2) transparent; }
 .rank-row { width: 100%; min-height: 58px; padding: 10px 15px; display: grid; grid-template-columns: 28px minmax(90px, 1fr) minmax(80px, .8fr) auto; gap: 10px; align-items: center; border: 0; border-bottom: 1px solid rgba(255,255,255,.07); color: var(--white); background: transparent; text-align: left; cursor: pointer; }
 .rank-row:hover, .rank-row.active { background: rgba(255,255,255,.055); }
 .rank-row.active { box-shadow: inset 3px 0 var(--acid); }
@@ -217,9 +227,14 @@ nav a:hover, nav a:focus-visible { color: var(--white); }
 .rank-bar { height: 4px; background: rgba(255,255,255,.08); }
 .rank-bar b { display: block; width: var(--rank-width); height: 100%; background: var(--orange); }
 .rank-row > strong { color: var(--acid); font-family: var(--mono); font-size: 10px; }
-.county-detail { min-height: 185px; padding: 20px; border-top: 1px solid var(--line-dark); }
-.county-detail h3 { margin: 0; font-size: 23px; letter-spacing: -.04em; }
+.county-detail { min-height: 195px; padding: 18px 20px; background: linear-gradient(135deg, rgba(213,255,70,.055), transparent 58%); }
+.county-detail-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.county-detail-head > div:first-child > span { color: rgba(255,255,255,.34); font-family: var(--mono); font-size: 7px; letter-spacing: .1em; }
+.county-detail h3 { margin: 4px 0 0; font-size: 23px; letter-spacing: -.04em; }
 .county-detail h3 span { margin-left: 6px; color: var(--acid); font-family: var(--mono); font-size: 10px; letter-spacing: 0; }
+.county-score { flex: 0 0 auto; text-align: right; }
+.county-score strong { display: block; color: var(--acid); font-family: var(--mono); font-size: 25px; line-height: 1; letter-spacing: -.06em; }
+.county-score span { display: block; margin-top: 5px; color: rgba(255,255,255,.3); font-family: var(--mono); font-size: 7px; letter-spacing: .09em; }
 .county-detail-grid { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 16px; border: 1px solid var(--line-dark); }
 .county-detail-grid div { padding: 10px; border-right: 1px solid var(--line-dark); }
 .county-detail-grid div:last-child { border: 0; }
@@ -489,6 +504,9 @@ footer > div a:hover { color: var(--acid); }
   .live-kpis article { padding: 22px 15px; }
   .live-kpis strong { font-size: 30px; }
   .wa-map-wrap, #live-map { min-height: 390px; height: 390px; }
+  .county-command-bar { grid-template-columns: 1fr; align-items: stretch; }
+  .county-command-bar button { width: 100%; }
+  .ranking-head small { display: none; }
   .rank-row { grid-template-columns: 25px 1fr auto; }
   .rank-bar { display: none; }
   .score-method { grid-template-columns: 1fr 1fr; }
