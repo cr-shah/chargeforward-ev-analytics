@@ -154,13 +154,21 @@
           <div class="live-panel-head">
             <div><span>EXPLORATORY PRIORITY</span><strong id="opportunity-title">County opportunity signal</strong></div>
           </div>
-          <div class="live-metric-tabs" role="group" aria-label="Rank counties by metric">
-            <button class="active" type="button" data-live-metric="Opportunity_Score">Score</button>
-            <button type="button" data-live-metric="EVs_Per_Port">EVs / port</button>
-            <button type="button" data-live-metric="Registration_Growth_Pct">Growth</button>
+          <div class="county-command-bar">
+            <label for="live-county-select"><span>JUMP TO COUNTY</span><select id="live-county-select"><option value="">All counties</option></select></label>
+            <button id="rank-toggle" type="button" aria-expanded="false">SHOW ALL 39</button>
           </div>
+          <div class="live-metric-tabs" role="group" aria-label="Rank counties by metric">
+            <button class="active" type="button" data-live-metric="Opportunity_Score" aria-pressed="true">Score</button>
+            <button type="button" data-live-metric="EVs_Per_Port" aria-pressed="false">EVs / port</button>
+            <button type="button" data-live-metric="Registration_Growth_Pct" aria-pressed="false">Growth</button>
+          </div>
+          <div class="county-detail" id="county-detail" aria-live="polite">
+            <div class="county-detail-head"><div><span>SELECTED SIGNAL</span><h3>Choose a county</h3></div><div class="county-score"><strong id="county-signal-score">—</strong><span>SCORE / 100</span></div></div>
+            <p>Select a county to inspect its demand, supply, growth, and charging mix.</p>
+          </div>
+          <div class="ranking-head"><span id="ranking-caption">Top 10 counties by score</span><small>SELECT A ROW TO FOCUS THE MAP</small></div>
           <div class="county-rank-list" id="county-rank-list"></div>
-          <div class="county-detail" id="county-detail" aria-live="polite"></div>
         </aside>
       </div>
 

@@ -484,10 +484,20 @@
 
     let currentMetric = "Opportunity_Score";
     let selectedCounty = null;
+    let rankingsExpanded = false;
+    const countySelect = $("#live-county-select");
+    [...liveData.counties]
+      .sort((a, b) => a.County.localeCompare(b.County))
+      .forEach((row) => {
+        const option = document.createElement("option");
+        option.value = row.County;
+        option.textContent = `${row.County} County`;
+        countySelect.append(option);
+      });
     const metricMetaLive = {
-      Opportunity_Score: { suffix: " / 100", decimals: 1 },
-      EVs_Per_Port: { suffix: " EVs", decimals: 1 },
-      Registration_Growth_Pct: { suffix: "%", decimals: 1 },
+      Opportunity_Score: { suffix: " / 100", decimals: 1, label: "score" },
+      EVs_Per_Port: { suffix: " EVs", decimals: 1, label: "EVs per port" },
+      Registration_Growth_Pct: { suffix: "%", decimals: 1, label: "growth" },
     };
 
     function renderRankings() {
@@ -496,39 +506,63 @@
         .filter((row) => row[currentMetric] != null && Number.isFinite(Number(row[currentMetric])))
         .sort((a, b) => Number(b[currentMetric]) - Number(a[currentMetric]));
       const max = Math.max(...rows.map((row) => Number(row[currentMetric])), 1);
+      const visibleRows = rankingsExpanded ? rows : rows.slice(0, 10);
       const list = $("#county-rank-list");
       list.replaceChildren();
-      rows.forEach((row, index) => {
+      visibleRows.forEach((row) => {
+        const rank = rows.indexOf(row) + 1;
         const button = document.createElement("button");
         button.type = "button";
         button.className = `rank-row${selectedCounty === row.County ? " active" : ""}`;
-        button.innerHTML = `<i>${String(index + 1).padStart(2, "0")}</i><span>${row.County}</span><div class="rank-bar"><b style="--rank-width:${Math.max(2, Number(row[currentMetric]) / max * 100)}%"></b></div><strong>${formatNumber(row[currentMetric], meta.decimals)}${meta.suffix}</strong>`;
+        if (selectedCounty === row.County) button.setAttribute("aria-current", "true");
+        button.innerHTML = `<i>${String(rank).padStart(2, "0")}</i><span>${row.County}</span><div class="rank-bar"><b style="--rank-width:${Math.max(2, Number(row[currentMetric]) / max * 100)}%"></b></div><strong>${formatNumber(row[currentMetric], meta.decimals)}${meta.suffix}</strong>`;
         button.addEventListener("click", () => selectCounty(row.County));
         list.append(button);
       });
+      $("#ranking-caption").textContent = `${rankingsExpanded ? `All ${rows.length}` : `Top ${Math.min(10, rows.length)}`} counties by ${meta.label}`;
+      $("#rank-toggle").textContent = rankingsExpanded ? "SHOW TOP 10" : `SHOW ALL ${rows.length}`;
+      $("#rank-toggle").setAttribute("aria-expanded", String(rankingsExpanded));
     }
 
     function selectCounty(county) {
       selectedCounty = county;
       const row = liveData.counties.find((item) => item.County === county);
       if (!row) return;
-      $$(".station-point", svg).forEach((point) => point.classList.toggle("dimmed", point.dataset.county !== county));
+      countySelect.value = county;
+      $$(".station-point", svg).forEach((point) => {
+        const selected = point.dataset.county === county;
+        point.classList.toggle("dimmed", !selected);
+        point.classList.toggle("selected", selected);
+      });
       const visibleStations = liveData.stations.filter((station) => station.County === county).length;
       $("#live-map-title").textContent = `${county} County · ${formatNumber(visibleStations)} mapped stations`;
-      $("#county-detail").innerHTML = `<h3>${county} County <span>#${row.Opportunity_Rank} signal</span></h3><div class="county-detail-grid"><div><span>EVS / PORT</span><strong>${row.EVs_Per_Port == null ? "—" : formatNumber(row.EVs_Per_Port, 1)}</strong></div><div><span>12M GROWTH</span><strong>${row.Registration_Growth_Pct == null ? "—" : `${formatNumber(row.Registration_Growth_Pct, 1)}%`}</strong></div><div><span>DC FAST SHARE</span><strong>${row.DC_Fast_Share_Pct == null ? "—" : `${formatNumber(row.DC_Fast_Share_Pct, 1)}%`}</strong></div></div><p>${formatNumber(row.EV_Stock)} registered EVs · ${formatNumber(row.Recent_EV_Transactions)} latest 12-month transactions · ${formatNumber(row.Public_Ports)} mapped public ports.</p>`;
+      $("#county-detail").innerHTML = `<div class="county-detail-head"><div><span>SELECTED SIGNAL</span><h3>${county} County <span>#${row.Opportunity_Rank}</span></h3></div><div class="county-score"><strong id="county-signal-score">${formatNumber(row.Opportunity_Score, 1)}</strong><span>SCORE / 100</span></div></div><div class="county-detail-grid"><div><span>EVS / PORT</span><strong>${row.EVs_Per_Port == null ? "—" : formatNumber(row.EVs_Per_Port, 1)}</strong></div><div><span>12M GROWTH</span><strong>${row.Registration_Growth_Pct == null ? "—" : `${formatNumber(row.Registration_Growth_Pct, 1)}%`}</strong></div><div><span>DC FAST SHARE</span><strong>${row.DC_Fast_Share_Pct == null ? "—" : `${formatNumber(row.DC_Fast_Share_Pct, 1)}%`}</strong></div></div><p>${formatNumber(row.EV_Stock)} registered EVs · ${formatNumber(row.Recent_EV_Transactions)} latest 12-month transactions · ${formatNumber(row.Public_Ports)} mapped public ports.</p>`;
       renderRankings();
     }
 
     $$("[data-live-metric]").forEach((button) => button.addEventListener("click", () => {
       currentMetric = button.dataset.liveMetric;
-      $$("[data-live-metric]").forEach((item) => item.classList.toggle("active", item === button));
+      $$("[data-live-metric]").forEach((item) => {
+        const active = item === button;
+        item.classList.toggle("active", active);
+        item.setAttribute("aria-pressed", String(active));
+      });
       renderRankings();
     }));
+    countySelect.addEventListener("change", () => {
+      if (countySelect.value) selectCounty(countySelect.value);
+      else $("#live-reset").click();
+    });
+    $("#rank-toggle").addEventListener("click", () => {
+      rankingsExpanded = !rankingsExpanded;
+      renderRankings();
+    });
     $("#live-reset").addEventListener("click", () => {
       selectedCounty = null;
-      $$(".station-point", svg).forEach((point) => point.classList.remove("dimmed"));
+      countySelect.value = "";
+      $$(".station-point", svg).forEach((point) => point.classList.remove("dimmed", "selected"));
       $("#live-map-title").textContent = `${formatNumber(liveData.stations.length)} mapped stations`;
-      $("#county-detail").innerHTML = "<p>Select a county to inspect its demand, supply, growth, and charging mix.</p>";
+      $("#county-detail").innerHTML = `<div class="county-detail-head"><div><span>SELECTED SIGNAL</span><h3>Choose a county</h3></div><div class="county-score"><strong id="county-signal-score">—</strong><span>SCORE / 100</span></div></div><p>Select a county to inspect its demand, supply, growth, and charging mix.</p>`;
       renderRankings();
     });
 
